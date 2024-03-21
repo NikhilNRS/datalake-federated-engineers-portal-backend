@@ -12,7 +12,10 @@ API_DESCRIPTION = toml.load("pyproject.toml")["tool"]["poetry"]["description"]
 app = fastapi.FastAPI(
     title="PostNL - Federated Engineers login portal",
     descripton=API_DESCRIPTION,
-    version=API_VERSION
+    version=API_VERSION,
+    docs_url=None,
+    redoc_url=None,
+    openapi_url=None
 )
 
 
