@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "federated-engineers-portal-backend"
+version = "0.1.0"
+description = "A login portal for federated engineers to do their work"
+authors = ["Ben van der Harg <ben.j.van.der.harg@postnl.nl>"]
+readme = "README.md"
+packages = [{include = "federated_engineers_portal_backend"}]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+fastapi = "^0.110.0"
+python-dotenv = "^1.0.1"
+toml = "^0.10.2"
+uvicorn = "^0.29.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
