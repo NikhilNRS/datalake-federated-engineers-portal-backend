@@ -2,7 +2,12 @@ import toml
 import uvicorn
 from dotenv import load_dotenv
 import fastapi
+from fastapi import Security
+from starlette.middleware.authentication import AuthenticationMiddleware
 from starlette.responses import FileResponse
+
+from dependency_injection.container import ServiceContainer
+from dependency_injection.fast_api import check_user_login
 
 load_dotenv()
 
@@ -18,10 +23,27 @@ app = fastapi.FastAPI(
     openapi_url=None
 )
 
+# Initialize service container for dependency injection
+app.state.service_container = ServiceContainer()
+# noinspection PyTypeChecker
+app.add_middleware(
+    AuthenticationMiddleware,
+    backend=app.state.service_container.authorization_code_backend()
+)
 
-@app.get("/")
+
+@app.get(
+    "/",
+    dependencies=[
+        Security(check_user_login, scopes=[])
+    ]
+)
 def home():
     return "Welcome to the portal!"
+
+# TODO: The redirect works so far, however, I am stumbling upon an error 13:
+#  https://postnl.atlassian.net/wiki/spaces/IAM/pages/3487989895/Er+is+iets+misgegaan+met+inloggen+Error+13
+#  To solve it we might need to request help from the IAM team, through TopDesk
 
 
 @app.get("/favicon.ico", include_in_schema=False)
