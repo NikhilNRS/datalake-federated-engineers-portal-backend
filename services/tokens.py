@@ -17,8 +17,12 @@ class TokenVerificationService:
     def __init__(self, cognito_service: CognitoService):
         self._cognito_service = cognito_service
 
-    def is_valid_token(self, token) -> bool:
-        decoded_token = self.decode_token(token)
+    # TODO: Split logic for verifying access tokens and id_tokens
+    def is_valid_token(
+        self,
+        token_to_validate: str,
+    ) -> bool:
+        decoded_token = self.decode_token(token_to_validate)
         if decoded_token:
             has_valid_client_id = self._has_valid_client_id(
                 decoded_token["client_id"]
@@ -44,21 +48,48 @@ class TokenVerificationService:
 
             token_key_id = token_header.get("kid")
             cognito_key = self._get_json_web_key(token_key_id)
+            token_use_type = self._get_token_use_type(token_payload)
             cognito_client_id = self._cognito_service.get_user_pool_client(
-                token_payload.get("sub")
+                self._get_client_id_from_token(token_payload)
             )
 
-            decoded_token = jwt.decode(
-                token=token,
-                key=cognito_key.to_dict(),
-                algorithms=cognito_key.to_dict().get("alg"),
-                subject=cognito_client_id,
-                issuer=self._cognito_service.get_issuer_url()
-            )
-        except JWTError:
+            if token_use_type == TokenUseTypes.ID_TOKEN:
+                # TODO: Provide access_token as additional parameter so that
+                #  the at_hash claim of the id_token can be verified
+                decoded_token = jwt.decode(
+                    token=token,
+                    key=cognito_key.to_dict(),
+                    audience=cognito_client_id,
+                    algorithms=cognito_key.to_dict().get("alg"),
+                    issuer=self._cognito_service.get_issuer_url()
+                )
+            else:
+                decoded_token = jwt.decode(
+                    token=token,
+                    key=cognito_key.to_dict(),
+                    algorithms=cognito_key.to_dict().get("alg"),
+                    issuer=self._cognito_service.get_issuer_url()
+                )
+        except JWTError as e:
             return None
 
         return decoded_token
+
+    @staticmethod
+    def _get_client_id_from_token(token_payload: dict) -> Optional[str]:
+        token_use_type = TokenVerificationService._get_token_use_type(
+            token_payload)
+
+        if token_use_type == TokenUseTypes.ACCESS_TOKEN:
+            return token_payload["client_id"]
+        elif token_use_type == TokenUseTypes.ID_TOKEN:
+            return token_payload["aud"]
+        else:
+            return None
+
+    @staticmethod
+    def _get_token_use_type(token_payload: dict) -> TokenUseTypes:
+        return TokenUseTypes(token_payload["token_use"])
 
     def _get_json_web_key(self, key_id) -> Optional[CryptographyRSAKey]:
         return self._cognito_service.get_json_web_key(key_id)
@@ -106,8 +137,8 @@ class AuthorizationCodeBackend(AuthenticationBackend):
         # TODO: Perhaps use PKCE with codes, to make it safer:
         #  https://docs.aws.amazon.com/cognito/latest/developerguide/using-pkce-in-authorization-code.html
         service_container = conn.app.state.service_container
-        client_id = service_container.cognito_client_id()
-        redirect_url = f"{service_container.app_base_url()}/"
+        client_id = service_container.config.cognito_client_id()
+        redirect_url = f"{service_container.config.app_base_url()}/"
 
         token_request_data = {
             self.GRANT_TYPE_PARAMETER:

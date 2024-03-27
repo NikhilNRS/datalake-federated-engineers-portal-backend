@@ -16,7 +16,7 @@ def check_user_login(
 ):
     service_container: ServiceContainer = request.app.state.service_container
     client_id = service_container.config.cognito_client_id()
-    redirect_url = service_container.config.app_base_url()
+    redirect_url = f"{service_container.config.app_base_url()}/"
     cognito_service = service_container.cognito_service()
 
     if not request.user.is_authenticated:
@@ -28,7 +28,7 @@ def check_user_login(
             "response_type":
                 AuthorizeRequestResponseTypes.AUTHORIZATION_CODE.value,
             "client_id": client_id,
-            "redirect_uri": f"{redirect_url}/"
+            "redirect_uri": f"{redirect_url}"
         }
         query_params_str = urllib.parse.urlencode(query_params)
 
