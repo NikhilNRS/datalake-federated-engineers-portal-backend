@@ -61,5 +61,6 @@ class ServiceContainer(containers.DeclarativeContainer):
         AuthorizationCodeBackend
     ).add_args(
         token_verification_service,
-        cognito_service
+        cognito_service,
+        dogpile_cache_region
     )

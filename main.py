@@ -2,7 +2,7 @@ import toml
 import uvicorn
 from dotenv import load_dotenv
 import fastapi
-from fastapi import Security
+from fastapi import Security, Request
 from starlette.middleware.authentication import AuthenticationMiddleware
 from starlette.responses import FileResponse
 
@@ -38,8 +38,9 @@ app.add_middleware(
         Security(check_user_login, scopes=[])
     ]
 )
-def home():
-    return "Welcome to the portal!"
+def home(request: Request):
+    return f"Welcome to the portal!\nYou're logged in as: " \
+           f"{request.user.username}"
 
 # TODO: The redirect works so far, however, I am stumbling upon an error 13:
 #  https://postnl.atlassian.net/wiki/spaces/IAM/pages/3487989895/Er+is+iets+misgegaan+met+inloggen+Error+13
