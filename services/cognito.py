@@ -12,20 +12,28 @@ class CognitoService:
                          "{user_pool_id}"
     _COGNITO_USER_POOL_BASE_URL_TEMPLATE = "https://{user_pool_domain}.auth." \
                                            "{aws_region}.amazoncognito.com"
+    _IDENTITY_POOL_IDENTITY_ID_KEY = "IdentityId"
+    _OPEN_ID_TOKEN_KEY = "Token"
+    _COGNITO_GROUP_KEY = "Group"
+    _ROLE_ARN_KEY = "RoleArn"
 
     def __init__(
         self,
         cognito_api_client: BaseClient,
+        cognito_identity_api_client: BaseClient,
         cache_client: CacheRegion,
         aws_region: str,
         user_pool_domain: str,
-        user_pool_id: str
+        user_pool_id: str,
+        identity_pool_id: str
     ):
         self._cognito_client = cognito_api_client
+        self._cognito_identity_client = cognito_identity_api_client
         self._cache_client = cache_client
         self._aws_region = aws_region
         self._user_pool_domain = user_pool_domain
         self._user_pool_id = user_pool_id
+        self._identity_pool_id = identity_pool_id
 
     def _get_cognito_user_pool_base_url(self):
         """Returns the base url for the Cognito user pool that handles
@@ -56,6 +64,9 @@ class CognitoService:
         :return: the issuer URL
         """
         return self._get_base_url()
+
+    def get_issuer_host_name(self):
+        return self.get_issuer_url().removeprefix("https://")
 
     def _get_json_web_keys_url(self) -> str:
         """The URL from which to obtain the current RSA public keys,
@@ -147,3 +158,41 @@ class CognitoService:
                 return None
 
         return client
+
+    def get_cognito_identity_id(self, id_token: str) -> str:
+        return self._cognito_identity_client.get_id(
+            IdentityPoolId=self._identity_pool_id,
+            Logins={
+                self.get_issuer_host_name(): id_token
+            }
+        )[self._IDENTITY_POOL_IDENTITY_ID_KEY]
+
+    def get_open_id_token(
+        self,
+        cognito_identity_id: str,
+        id_token: str
+    ) -> str:
+        logins_dict = {
+            self.get_issuer_host_name(): id_token
+        }
+
+        return self._cognito_identity_client.get_open_id_token(
+            IdentityId=cognito_identity_id,
+            Logins=logins_dict
+        )[self._OPEN_ID_TOKEN_KEY]
+
+    def get_roles_by_groups(self, group_names: list[str]) -> dict:
+        group_to_role_mapping = dict()
+
+        for group_name in group_names:
+            response = self._cognito_client.get_group(
+                GroupName=group_name,
+                UserPoolId=self._user_pool_id
+            )
+            group_to_role_mapping[group_name] = \
+                response[self._COGNITO_GROUP_KEY].get(
+                    self._ROLE_ARN_KEY,
+                    None
+                )
+
+        return group_to_role_mapping

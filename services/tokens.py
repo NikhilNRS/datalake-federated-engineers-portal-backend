@@ -5,10 +5,12 @@ from dogpile.cache import CacheRegion
 from jose import JWTError, jwt
 from jose.backends.cryptography_backend import CryptographyRSAKey
 from starlette.authentication import AuthenticationBackend, AuthCredentials, \
-    BaseUser, UnauthenticatedUser, SimpleUser
+    BaseUser, UnauthenticatedUser
 from starlette.requests import HTTPConnection
 
 from models.enums import TokenRequestGrantTypes, TokenUseTypes
+from models.users import CognitoUser
+from services.aws_console import AWSConsoleService
 from services.cognito import CognitoService
 
 
@@ -18,7 +20,6 @@ class TokenVerificationService:
     def __init__(self, cognito_service: CognitoService):
         self._cognito_service = cognito_service
 
-    # TODO: Split logic for verifying access tokens and id_tokens
     def is_valid_access_token(
         self,
         access_token: str,
@@ -141,16 +142,19 @@ class AuthorizationCodeBackend(AuthenticationBackend):
     ACCESS_TOKEN_KEY = "access_token"
     ID_TOKEN_KEY = "id_token"
     EMAIL_CLAIM_KEY = "email"
+    COGNITO_GROUPS_KEY = "cognito:groups"
 
     def __init__(
         self,
         token_verification_service: TokenVerificationService,
         cognito_service: CognitoService,
-        cache_client: CacheRegion
+        cache_client: CacheRegion,
+        aws_console_service: AWSConsoleService
     ):
         self._token_verifier = token_verification_service
         self._cognito_service = cognito_service
         self._cache = cache_client
+        self._aws_console_service = aws_console_service
 
     async def authenticate(
         self,
@@ -215,8 +219,34 @@ class AuthorizationCodeBackend(AuthenticationBackend):
             #  Perhaps using or a fork thereof:
             #  https://github.com/auredentan/starlette-session/
 
-            return AuthCredentials(), SimpleUser(
-                decoded_id_token[self.EMAIL_CLAIM_KEY]
+            # TODO: Add more user data
+            identity_pool_identity_id = \
+                self._cognito_service.get_cognito_identity_id(id_token)
+
+            open_id_token = self._cognito_service.get_open_id_token(
+                identity_pool_identity_id,
+                id_token
+            )
+
+            group_role_mapping = self._cognito_service.get_roles_by_groups(
+                decoded_id_token[self.COGNITO_GROUPS_KEY]
+            )
+
+            group_login_link_mapping = dict()
+
+            for group, role in group_role_mapping.items():
+                login_link = self._aws_console_service.\
+                    get_console_url_by_openid_token(
+                        role,
+                        open_id_token,
+                        decoded_id_token[self.EMAIL_CLAIM_KEY]
+                    )
+                group_login_link_mapping[group] = login_link
+
+            return AuthCredentials(), CognitoUser(
+                decoded_id_token[self.EMAIL_CLAIM_KEY],
+                decoded_id_token[self.COGNITO_GROUPS_KEY],
+                group_login_link_mapping
             )
 
     def get_tokens_from_cache_by_authorization_code(
