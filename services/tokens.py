@@ -143,6 +143,8 @@ class AuthorizationCodeBackend(AuthenticationBackend):
     ID_TOKEN_KEY = "id_token"
     EMAIL_CLAIM_KEY = "email"
     COGNITO_GROUPS_KEY = "cognito:groups"
+    FIRST_NAME_CLAIM_KEY = "given_name"
+    LAST_NAME_CLAIM_KEY = "family_name"
 
     def __init__(
         self,
@@ -246,7 +248,9 @@ class AuthorizationCodeBackend(AuthenticationBackend):
             return AuthCredentials(), CognitoUser(
                 decoded_id_token[self.EMAIL_CLAIM_KEY],
                 decoded_id_token[self.COGNITO_GROUPS_KEY],
-                group_login_link_mapping
+                group_login_link_mapping,
+                decoded_id_token[self.FIRST_NAME_CLAIM_KEY],
+                decoded_id_token[self.LAST_NAME_CLAIM_KEY]
             )
 
     def get_tokens_from_cache_by_authorization_code(

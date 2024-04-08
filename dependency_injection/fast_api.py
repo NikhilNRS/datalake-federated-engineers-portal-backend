@@ -28,7 +28,7 @@ def check_user_login(
             "response_type":
                 AuthorizeRequestResponseTypes.AUTHORIZATION_CODE.value,
             "client_id": client_id,
-            "redirect_uri": f"{redirect_url}"
+            "redirect_uri": redirect_url
         }
         query_params_str = urllib.parse.urlencode(query_params)
 

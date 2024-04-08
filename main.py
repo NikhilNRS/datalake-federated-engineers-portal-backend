@@ -5,6 +5,8 @@ import fastapi
 from fastapi import Security, Request
 from starlette.middleware.authentication import AuthenticationMiddleware
 from starlette.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 
 from dependency_injection.container import ServiceContainer
 from dependency_injection.fast_api import check_user_login
@@ -25,6 +27,14 @@ app = fastapi.FastAPI(
 
 # Initialize service container for dependency injection
 app.state.service_container = ServiceContainer()
+
+# Add endpoint for static files
+app.mount("/static", StaticFiles(directory="./assets"), name="static")
+templates = Jinja2Templates(
+    directory="./jinja_templates",
+    autoescape=False
+)
+
 # noinspection PyTypeChecker
 app.add_middleware(
     AuthenticationMiddleware,
@@ -39,8 +49,14 @@ app.add_middleware(
     ]
 )
 def home(request: Request):
-    return f"Welcome to the portal!\nYou're logged in as: " \
-           f"{request.user.username}"
+    page_content = {
+        "title": f"{request.app.title} - Home",
+        "first_name": request.user.first_name,
+        "login_links": request.user.login_links,
+        "request": request
+    }
+
+    return templates.TemplateResponse("home.html", page_content)
 
 # TODO: The redirect works so far, however, I am stumbling upon an error 13:
 #  https://postnl.atlassian.net/wiki/spaces/IAM/pages/3487989895/Er+is+iets+misgegaan+met+inloggen+Error+13

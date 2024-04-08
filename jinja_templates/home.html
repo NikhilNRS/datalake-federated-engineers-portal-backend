@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>{{ title }}</title>
+</head>
+<body>
+<p>Welcome {{ first_name }}</p>
+<p>You can log in as a user for the following teams:</p>
+<ul>
+  {% for team, login_url in login_links.items() if not login_url is none -%}
+  <li><a href="{{ login_url }}">{{ team }}</a></li>
+  {% endfor %}
+</ul>
+
+</body>
+</html>
