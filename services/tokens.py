@@ -221,7 +221,6 @@ class AuthorizationCodeBackend(AuthenticationBackend):
             #  Perhaps using or a fork thereof:
             #  https://github.com/auredentan/starlette-session/
 
-            # TODO: Add more user data
             identity_pool_identity_id = \
                 self._cognito_service.get_cognito_identity_id(id_token)
 
@@ -249,9 +248,11 @@ class AuthorizationCodeBackend(AuthenticationBackend):
                 decoded_id_token[self.EMAIL_CLAIM_KEY],
                 decoded_id_token[self.COGNITO_GROUPS_KEY],
                 group_login_link_mapping,
-                decoded_id_token[self.FIRST_NAME_CLAIM_KEY],
+                decoded_id_token.get(self.FIRST_NAME_CLAIM_KEY, ""),
                 decoded_id_token[self.LAST_NAME_CLAIM_KEY]
             )
+        else:
+            return AuthCredentials(), UnauthenticatedUser()
 
     def get_tokens_from_cache_by_authorization_code(
         self,

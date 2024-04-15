@@ -6,12 +6,18 @@
 </head>
 <body>
 <p>Welcome {{ first_name }}</p>
+{# TODO: Fix the logic below #}
+{% if (login_links if not login_url is none)|length > 0 %}
 <p>You can log in as a user for the following teams:</p>
+
 <ul>
   {% for team, login_url in login_links.items() if not login_url is none -%}
   <li><a href="{{ login_url }}">{{ team }}</a></li>
   {% endfor %}
 </ul>
+{% else %}
+<p>You are not assigned to any teams yet. Ask the DataLake team to add you to a team!</p>
+{% endif %}
 
 </body>
 </html>
