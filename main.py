@@ -69,11 +69,6 @@ def home(request: Request):
     return templates.TemplateResponse("home.html", page_content)
 
 
-# TODO: The redirect works so far, however, I am stumbling upon an error 13:
-#  https://postnl.atlassian.net/wiki/spaces/IAM/pages/3487989895/Er+is+iets+misgegaan+met+inloggen+Error+13
-#  To solve it we might need to request help from the IAM team, through TopDesk
-
-
 @app.get("/favicon.ico", include_in_schema=False)
 def get_favicon():
     return FileResponse("assets/favicon.ico")
