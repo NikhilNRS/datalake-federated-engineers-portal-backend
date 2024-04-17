@@ -6,8 +6,7 @@
 </head>
 <body>
 <p>Welcome {{ first_name }}</p>
-{# TODO: Fix the logic below #}
-{% if (login_links if not login_url is none)|length > 0 %}
+{% if user_has_no_login_links is false %}
 <p>You can log in as a user for the following teams:</p>
 
 <ul>

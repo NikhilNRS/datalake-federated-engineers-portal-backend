@@ -1,3 +1,5 @@
+from collections import Counter
+
 import toml
 import uvicorn
 from dotenv import load_dotenv
@@ -49,14 +51,23 @@ app.add_middleware(
     ]
 )
 def home(request: Request):
+    # we check here how many cognito groups actually have a login link
+    # (i.e. a role assigned). If none have a login link, we show a different
+    # message on the home page
+    login_links_counts = Counter(request.user.login_links.values())
+    user_has_no_login_links = \
+        login_links_counts.get(None) == len(request.user.login_links),
+
     page_content = {
         "title": f"{request.app.title} - Home",
         "first_name": request.user.first_name,
         "login_links": request.user.login_links,
+        "user_has_no_login_links": user_has_no_login_links,
         "request": request
     }
 
     return templates.TemplateResponse("home.html", page_content)
+
 
 # TODO: The redirect works so far, however, I am stumbling upon an error 13:
 #  https://postnl.atlassian.net/wiki/spaces/IAM/pages/3487989895/Er+is+iets+misgegaan+met+inloggen+Error+13
