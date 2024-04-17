@@ -4,7 +4,6 @@ from fastapi import HTTPException
 from fastapi.security import SecurityScopes
 from starlette import status
 from starlette.requests import Request
-from starlette.responses import RedirectResponse
 
 from dependency_injection.container import ServiceContainer
 from models.enums import AuthorizeRequestResponseTypes
@@ -21,8 +20,10 @@ def check_user_login(
 
     if not request.user.is_authenticated:
         # TODO: Call Cognito service here and store only the
-        #  code challenge in a cookie. See: https://stackoverflow.com/questions/74430285/best-way-to-store-code-challenge-and-code-challenge-method-in-oauth2pkce-flow
-        #  We can achieve this through an http header as follows: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie
+        #  code challenge in a cookie. See:
+        #  https://stackoverflow.com/q/74430285/10243474
+        #  We can achieve this through an http header as follows:
+        #  https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie
         #  Or use the server-side session for this purpose
         query_params = {
             "response_type":

@@ -1,5 +1,4 @@
 import json
-import urllib.parse
 from typing import Optional
 
 import requests
@@ -66,9 +65,6 @@ class AWSConsoleService:
         }
 
         json_credentials = json.dumps(required_credentials_for_url)
-        url_encoded_json_credentials = urllib.parse.quote_plus(
-            json_credentials
-        )
 
         query_params = {
             self._ACTION_PARAM: "getSigninToken",

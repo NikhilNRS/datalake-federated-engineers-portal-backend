@@ -82,7 +82,7 @@ class TokenVerificationService:
                 issuer=self._cognito_service.get_issuer_url(),
                 access_token=access_token
             )
-        except JWTError as e:
+        except JWTError:
             return None
 
         return decoded_token
@@ -99,7 +99,7 @@ class TokenVerificationService:
                 algorithms=cognito_key.to_dict().get("alg"),
                 issuer=self._cognito_service.get_issuer_url()
             )
-        except JWTError as e:
+        except JWTError:
             return None
 
         return decoded_token
