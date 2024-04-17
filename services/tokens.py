@@ -1,9 +1,10 @@
-from typing import Optional
+from typing import Optional, Any
 
 import requests
 from dogpile.cache import CacheRegion
+from dogpile.cache.api import CachedValue, NoValue
 from jose import JWTError, jwt
-from jose.backends.cryptography_backend import CryptographyRSAKey
+from jose.backends.base import Key
 from starlette.authentication import AuthenticationBackend, AuthCredentials, \
     BaseUser, UnauthenticatedUser
 from starlette.requests import HTTPConnection
@@ -70,8 +71,14 @@ class TokenVerificationService:
 
             token_key_id = token_header.get("kid")
             cognito_key = self._get_json_web_key(token_key_id)
+            token_client_id = self._get_client_id_from_token(token_payload)
+
+            # ensure we handle None cases appropriately
+            assert cognito_key is not None
+            assert token_client_id is not None
+
             cognito_client_id = self._cognito_service.get_user_pool_client(
-                self._get_client_id_from_token(token_payload)
+               token_client_id
             )
 
             decoded_token = jwt.decode(
@@ -82,16 +89,23 @@ class TokenVerificationService:
                 issuer=self._cognito_service.get_issuer_url(),
                 access_token=access_token
             )
-        except JWTError:
+        except (JWTError, AssertionError):
             return None
 
         return decoded_token
 
-    def decode_access_token(self, access_token: str) -> Optional[dict]:
+    def decode_access_token(
+        self,
+        access_token: str
+    ) -> Optional[dict[str, Any]]:
+
         try:
             token_header = jwt.get_unverified_header(access_token)
             token_key_id = token_header.get("kid")
             cognito_key = self._get_json_web_key(token_key_id)
+
+            # Handle None cases properly
+            assert cognito_key is not None
 
             decoded_token = jwt.decode(
                 token=access_token,
@@ -99,7 +113,7 @@ class TokenVerificationService:
                 algorithms=cognito_key.to_dict().get("alg"),
                 issuer=self._cognito_service.get_issuer_url()
             )
-        except JWTError:
+        except (JWTError, AssertionError):
             return None
 
         return decoded_token
@@ -120,10 +134,10 @@ class TokenVerificationService:
     def _get_token_use_type(token_payload: dict) -> TokenUseTypes:
         return TokenUseTypes(token_payload["token_use"])
 
-    def _get_json_web_key(self, key_id) -> Optional[CryptographyRSAKey]:
+    def _get_json_web_key(self, key_id) -> Optional[Key]:
         return self._cognito_service.get_json_web_key(key_id)
 
-    def _has_valid_token_type(self, token_type: str):
+    def _has_valid_token_type(self, token_type: Optional[str]):
         return TokenUseTypes(token_type) in self.VALID_TOKEN_TYPES
 
     def _has_valid_client_id(self, client_id: str) -> bool:
@@ -206,9 +220,12 @@ class AuthorizationCodeBackend(AuthenticationBackend):
             id_token,
             access_token
         )
+        valid_access_token = self._token_verifier.is_valid_access_token(
+            access_token
+        )
 
         are_valid_tokens = [
-            self._token_verifier.is_valid_access_token(access_token),
+            valid_access_token,
             valid_id_token
         ]
 
@@ -228,6 +245,8 @@ class AuthorizationCodeBackend(AuthenticationBackend):
                 identity_pool_identity_id,
                 id_token
             )
+
+            assert decoded_id_token is not None
 
             group_role_mapping = self._cognito_service.get_roles_by_groups(
                 decoded_id_token[self.COGNITO_GROUPS_KEY]
@@ -257,7 +276,7 @@ class AuthorizationCodeBackend(AuthenticationBackend):
     def get_tokens_from_cache_by_authorization_code(
         self,
         authorization_code: str
-    ) -> dict:
+    ) -> CachedValue | NoValue:
         cache_value = self._cache.get(authorization_code)
 
         return cache_value

@@ -1,3 +1,5 @@
+from typing import Optional
+
 from starlette.authentication import SimpleUser
 
 
@@ -6,7 +8,7 @@ class CognitoUser(SimpleUser):
         self,
         username: str,
         groups: list[str],
-        group_login_links_mapping: dict[str, str],
+        group_login_links_mapping: dict[str, Optional[str]],
         first_name: str,
         last_name: str
     ):

@@ -1,13 +1,13 @@
 import json
-from typing import Optional
+from typing import Optional, Literal
 
 import requests
-from botocore.client import BaseClient
+from mypy_boto3_sts import STSClient
 from requests import PreparedRequest
 
 
 class AWSConsoleService:
-    _STS_CREDENTIALS_KEY = "Credentials"
+    _STS_CREDENTIALS_KEY: Literal["Credentials"] = "Credentials"
     _REQUIRED_KEYS_FOR_URL = [
         "AccessKeyId",
         "SecretAccessKey",
@@ -31,13 +31,13 @@ class AWSConsoleService:
     _ISSUER_PARAM = "Issuer"
     _DESTINATION_PARAM = "Destination"
 
-    def __init__(self, sts_client: BaseClient, app_base_url: str):
+    def __init__(self, sts_client: STSClient, app_base_url: str):
         self._sts_client = sts_client
         self._base_url = app_base_url
 
     def get_console_url_by_openid_token(
         self,
-        role_arn: str,
+        role_arn: Optional[str],
         openid_token: str,
         user_email: str
     ) -> Optional[str]:

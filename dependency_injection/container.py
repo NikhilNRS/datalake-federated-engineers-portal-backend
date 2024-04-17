@@ -1,5 +1,11 @@
+from typing import Literal
+
 import boto3
 from dependency_injector import providers, containers
+from dependency_injector.providers import Provider
+from mypy_boto3_cognito_identity import CognitoIdentityClient
+from mypy_boto3_cognito_idp import CognitoIdentityProviderClient
+from mypy_boto3_sts import STSClient
 
 from dependency_injection.resources import DogpileCacheResource
 from services.aws_console import AWSConsoleService
@@ -14,9 +20,10 @@ load_dotenv()
 
 class ServiceContainer(containers.DeclarativeContainer):
     # constants
-    COGNITO_SERVICE_NAME = "cognito-idp"
-    COGNITO_IDENTITY_SERVICE_NAME = "cognito-identity"
-    STS_SERVICE_NAME = "sts"
+    COGNITO_SERVICE_NAME: Literal["cognito-idp"] = "cognito-idp"
+    COGNITO_IDENTITY_SERVICE_NAME: Literal["cognito-identity"] = \
+        "cognito-identity"
+    STS_SERVICE_NAME: Literal["sts"] = "sts"
 
     # configuration
     config = providers.Configuration()
@@ -38,20 +45,22 @@ class ServiceContainer(containers.DeclarativeContainer):
 
     # dependencies
     boto3_session = providers.Singleton(boto3.session.Session)
-    aws_cognito_client = providers.Object(
-        boto3_session().client(
-            service_name=COGNITO_SERVICE_NAME,
-            region_name=config.aws_region()
-        )
+    aws_cognito_client: Provider[CognitoIdentityProviderClient] = \
+        providers.Object(
+            boto3_session().client(
+                service_name=COGNITO_SERVICE_NAME,
+                region_name=config.aws_region()
+            )
     )
-    aws_cognito_identity_client = providers.Object(
-        boto3_session().client(
-            service_name=COGNITO_IDENTITY_SERVICE_NAME,
-            region_name=config.aws_region()
-        )
+    aws_cognito_identity_client: Provider[CognitoIdentityClient] = \
+        providers.Object(
+            boto3_session().client(
+                service_name=COGNITO_IDENTITY_SERVICE_NAME,
+                region_name=config.aws_region()
+            )
     )
 
-    aws_sts_client = providers.Object(
+    aws_sts_client: Provider[STSClient] = providers.Object(
         boto3_session().client(
             service_name=STS_SERVICE_NAME,
             region_name=config.aws_region()

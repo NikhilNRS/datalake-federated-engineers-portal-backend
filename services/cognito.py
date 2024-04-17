@@ -1,10 +1,11 @@
-from typing import Optional
+from typing import Optional, Literal
 
 import requests
-from botocore.client import BaseClient
 from dogpile.cache import CacheRegion
 from jose import jwk
-from jose.backends.cryptography_backend import CryptographyRSAKey
+from jose.backends.base import Key
+from mypy_boto3_cognito_identity import CognitoIdentityClient
+from mypy_boto3_cognito_idp import CognitoIdentityProviderClient
 
 
 class CognitoService:
@@ -12,15 +13,15 @@ class CognitoService:
                          "{user_pool_id}"
     _COGNITO_USER_POOL_BASE_URL_TEMPLATE = "https://{user_pool_domain}.auth." \
                                            "{aws_region}.amazoncognito.com"
-    _IDENTITY_POOL_IDENTITY_ID_KEY = "IdentityId"
-    _OPEN_ID_TOKEN_KEY = "Token"
-    _COGNITO_GROUP_KEY = "Group"
-    _ROLE_ARN_KEY = "RoleArn"
+    _IDENTITY_POOL_IDENTITY_ID_KEY: Literal["IdentityId"] = "IdentityId"
+    _OPEN_ID_TOKEN_KEY: Literal["Token"] = "Token"
+    _COGNITO_GROUP_KEY: Literal["Group"] = "Group"
+    _ROLE_ARN_KEY: Literal["RoleArn"] = "RoleArn"
 
     def __init__(
         self,
-        cognito_api_client: BaseClient,
-        cognito_identity_api_client: BaseClient,
+        cognito_api_client: CognitoIdentityProviderClient,
+        cognito_identity_api_client: CognitoIdentityClient,
         cache_client: CacheRegion,
         aws_region: str,
         user_pool_domain: str,
@@ -95,7 +96,7 @@ class CognitoService:
         # store keys in cache
         self._cache_client.set_multi(json_web_keys)
 
-    def get_json_web_key(self, key_id: str) -> Optional[CryptographyRSAKey]:
+    def get_json_web_key(self, key_id: str) -> Optional[Key]:
         """All access tokens given out by AWS Cognito are cryptographically
         signed with an RSA Key pair. Cognito has 2 key pairs, that are
         regularly rotated. This method obtains the public key for the given
@@ -115,7 +116,11 @@ class CognitoService:
             self._refresh_user_pool_json_web_keys()
             result = self._cache_client.get(cache_key_id)
 
-        return jwk.construct(result) if result else None
+        try:
+            assert isinstance(result, dict)
+            return jwk.construct(result)
+        except AssertionError:
+            return None
 
     def get_authorize_endpoint(self):
         """Returns the OAuth2 authorize endpoint
@@ -141,22 +146,24 @@ class CognitoService:
          when the client does not exist.
         """
         client_cache_key = f"client_{client_id}"
-        client = self._cache_client.get(client_cache_key)
+
+        client = self._cache_client.get(client_cache_key)  # type: ignore
 
         if not client:
             try:
-                client = self._cognito_client.describe_user_pool_client(
-                    UserPoolId=self._user_pool_id,
-                    ClientId=client_id
-                )
+                client_response = \
+                    self._cognito_client.describe_user_pool_client(
+                        UserPoolId=self._user_pool_id,
+                        ClientId=client_id
+                    )
                 self._cache_client.set(
                     client_cache_key,
-                    client["UserPoolClient"]["ClientId"]
+                    client_response["UserPoolClient"]["ClientId"]
                 )
-                client = client["UserPoolClient"]["ClientId"]
+                client = client_response["UserPoolClient"]["ClientId"]  # type: ignore # noqa: E501
             except self._cognito_client.exceptions.ResourceNotFoundException:
                 return None
-
+        assert isinstance(client, str)
         return client
 
     def get_cognito_identity_id(self, id_token: str) -> str:
@@ -181,7 +188,10 @@ class CognitoService:
             Logins=logins_dict
         )[self._OPEN_ID_TOKEN_KEY]
 
-    def get_roles_by_groups(self, group_names: list[str]) -> dict:
+    def get_roles_by_groups(
+        self,
+        group_names: list[str]
+    ) -> dict[str, Optional[str]]:
         group_to_role_mapping = dict()
 
         for group_name in group_names:
