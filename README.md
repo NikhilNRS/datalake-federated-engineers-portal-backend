@@ -29,3 +29,13 @@ Run API in development mode:
 ```shell
 uvicorn main:app --reload
 ```
+
+Run linter:
+```shell
+flake8
+```
+
+Run type checker:
+```shell
+mypy .
+```
