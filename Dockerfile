@@ -1,4 +1,4 @@
-FROM python:3.11-alpine as requirements-stage
+FROM python:3.11-slim as requirements-stage
 
 WORKDIR /tmp
 
@@ -11,6 +11,8 @@ RUN poetry export -f requirements.txt --output requirements.txt --without-hashes
 FROM python:3.11-slim
 
 WORKDIR /app
+
+RUN apt-get update -y && apt-get upgrade -y
 
 COPY --from=requirements-stage /tmp/requirements.txt /app/requirements.txt
 
