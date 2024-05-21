@@ -30,6 +30,10 @@ app = fastapi.FastAPI(
 # Initialize service container for dependency injection
 app.state.service_container = ServiceContainer()
 
+test_logger = app.state.service_container.logger()
+# Test to see if logger shows output, especially on AWS
+test_logger.info("Starting the FastAPI app!")
+
 # Add endpoint for static files
 app.mount("/static", StaticFiles(directory="./assets"), name="static")
 templates = Jinja2Templates(
