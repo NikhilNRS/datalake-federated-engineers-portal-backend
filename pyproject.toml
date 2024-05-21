@@ -8,7 +8,7 @@ packages = [{include = "federated_engineers_portal_backend"}]
 
 [tool.poetry.dependencies]
 python = "^3.11"
-fastapi = "^0.110.0"
+fastapi = "^0.111.0"
 python-dotenv = "^1.0.1"
 toml = "^0.10.2"
 uvicorn = "^0.29.0"
