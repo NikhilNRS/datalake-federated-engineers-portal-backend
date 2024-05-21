@@ -9,7 +9,7 @@ from dependency_injection.container import ServiceContainer
 from models.enums import AuthorizeRequestResponseTypes
 
 
-def check_user_login(
+async def check_user_login(
     request: Request,
     security_scopes: SecurityScopes,
 ):

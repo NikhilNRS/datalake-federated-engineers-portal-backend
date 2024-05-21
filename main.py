@@ -9,6 +9,7 @@ from starlette.middleware.authentication import AuthenticationMiddleware
 from starlette.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from starsessions import SessionMiddleware
 
 from dependency_injection.container import ServiceContainer
 from dependency_injection.fast_api import check_user_login
@@ -41,10 +42,20 @@ templates = Jinja2Templates(
     autoescape=False
 )
 
+# Be aware: The authentication middleware requires the session middleware to
+# be loaded. However, add_middleware loads middleware in reverse. Hence,
+# authentication middleware comes first.
 # noinspection PyTypeChecker
 app.add_middleware(
     AuthenticationMiddleware,
     backend=app.state.service_container.authorization_code_backend()
+)
+
+# noinspection PyTypeChecker
+app.add_middleware(
+    SessionMiddleware,
+    store=app.state.service_container.dogpile_session_store(),
+    lifetime=3600
 )
 
 
@@ -58,6 +69,7 @@ def home(request: Request):
     # we check here how many cognito groups actually have a login link
     # (i.e. a role assigned). If none have a login link, we show a different
     # message on the home page
+
     login_links_counts = Counter(request.user.login_links.values())
     user_has_no_login_links = \
         login_links_counts.get(None) == len(request.user.login_links),

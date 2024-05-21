@@ -1,6 +1,7 @@
 from typing import Optional, Any
 
 import requests
+import starsessions
 from dogpile.cache import CacheRegion
 from dogpile.cache.api import CachedValue, NoValue
 from jose import JWTError, jwt
@@ -159,6 +160,8 @@ class AuthorizationCodeBackend(AuthenticationBackend):
     COGNITO_GROUPS_KEY = "cognito:groups"
     FIRST_NAME_CLAIM_KEY = "given_name"
     LAST_NAME_CLAIM_KEY = "family_name"
+    USER_SESSION_KEY = "user_session_info"
+    GROUP_LOGIN_LINKS_KEY = "group_login_link_mapping"
 
     def __init__(
         self,
@@ -181,6 +184,26 @@ class AuthorizationCodeBackend(AuthenticationBackend):
             None
         )
 
+        await starsessions.load_session(conn)
+
+        # First check if user is already logged in through the session
+        if conn.session.get(self.USER_SESSION_KEY, None):
+            user_session_info = conn.session.get(self.USER_SESSION_KEY)
+
+            assert user_session_info is not None
+
+            return AuthCredentials(), CognitoUser(
+                user_session_info[self.ID_TOKEN_KEY][self.EMAIL_CLAIM_KEY],
+                user_session_info[self.ID_TOKEN_KEY][self.COGNITO_GROUPS_KEY],
+                user_session_info[self.GROUP_LOGIN_LINKS_KEY],
+                user_session_info[self.ID_TOKEN_KEY]
+                                 [self.FIRST_NAME_CLAIM_KEY],
+                user_session_info[self.ID_TOKEN_KEY][self.LAST_NAME_CLAIM_KEY]
+
+            )
+
+        # If user is not logged in, check if we can log the user in through
+        # an authorization code
         if authorization_code is None or authorization_code == "":
             return AuthCredentials(), UnauthenticatedUser()
 
@@ -190,10 +213,12 @@ class AuthorizationCodeBackend(AuthenticationBackend):
         client_id = service_container.config.cognito_client_id()
         redirect_url = f"{service_container.config.app_base_url()}/"
 
+        # If there is an authorization code, check if we used it before
         cached_tokens = self.get_tokens_from_cache_by_authorization_code(
             authorization_code
         )
 
+        # If we have not used the authorization code: obtain tokens
         if not cached_tokens:
             token_request_data = {
                 self.GRANT_TYPE_PARAMETER:
@@ -211,11 +236,13 @@ class AuthorizationCodeBackend(AuthenticationBackend):
             parsed_response = token_response.json()
             self._cache.set(authorization_code, parsed_response)
         else:
+            # Use the cached tokens if we used the authorization code before
             parsed_response = cached_tokens
 
         access_token = parsed_response[self.ACCESS_TOKEN_KEY]
         id_token = parsed_response[self.ID_TOKEN_KEY]
 
+        # Validate all the tokens before we use them, to prevent token forgery
         valid_id_token = self._token_verifier.is_valid_id_token(
             id_token,
             access_token
@@ -263,6 +290,15 @@ class AuthorizationCodeBackend(AuthenticationBackend):
                     )
                 group_login_link_mapping[group] = login_link
 
+            # By now we've done all token exchanges, hence we can save the
+            # info in the session for re-use
+            user_session_info = {
+              self.ID_TOKEN_KEY: decoded_id_token,
+              "group_login_link_mapping": group_login_link_mapping
+            }
+
+            conn.session[self.USER_SESSION_KEY] = user_session_info
+
             return AuthCredentials(), CognitoUser(
                 decoded_id_token[self.EMAIL_CLAIM_KEY],
                 decoded_id_token[self.COGNITO_GROUPS_KEY],
@@ -276,7 +312,7 @@ class AuthorizationCodeBackend(AuthenticationBackend):
     def get_tokens_from_cache_by_authorization_code(
         self,
         authorization_code: str
-    ) -> CachedValue | NoValue:
+    ) -> dict | NoValue:
         cache_value = self._cache.get(authorization_code)
 
         return cache_value
