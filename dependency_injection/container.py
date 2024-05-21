@@ -20,6 +20,7 @@ from services.cognito import CognitoService
 from dotenv import load_dotenv
 
 from services.secrets import SecretsService
+from services.sessions import DogpileSessionStore
 from services.tokens import AuthorizationCodeBackend, TokenVerificationService
 
 load_dotenv()
@@ -156,6 +157,10 @@ class ServiceContainer(containers.DeclarativeContainer):
             config.cache_endpoint(),
             cache_credential_provider
         )
+    )
+
+    dogpile_session_store = providers.Singleton(DogpileSessionStore).add_args(
+        dogpile_cache_region
     )
 
     cognito_service = providers.Singleton(
