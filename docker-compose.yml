@@ -1,0 +1,16 @@
+services:
+  cache:
+    image: redis:7-alpine
+    command: /bin/sh -c 'redis-server --appendonly yes --requirepass dev'
+    ports:
+      - "6379:6379"
+
+  portal:
+    build:
+      context: .
+    env_file:
+      - .env.docker
+    volumes:
+      - ~/.aws:/root/.aws
+    ports:
+      - "8000:80"

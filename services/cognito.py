@@ -1,3 +1,4 @@
+from logging import Logger
 from typing import Optional, Literal
 
 import requests
@@ -23,6 +24,7 @@ class CognitoService:
         cognito_api_client: CognitoIdentityProviderClient,
         cognito_identity_api_client: CognitoIdentityClient,
         cache_client: CacheRegion,
+        logger: Logger,
         aws_region: str,
         user_pool_domain: str,
         user_pool_id: str,
@@ -31,6 +33,7 @@ class CognitoService:
         self._cognito_client = cognito_api_client
         self._cognito_identity_client = cognito_identity_api_client
         self._cache_client = cache_client
+        self._logger = logger
         self._aws_region = aws_region
         self._user_pool_domain = user_pool_domain
         self._user_pool_id = user_pool_id
@@ -161,8 +164,12 @@ class CognitoService:
                     client_response["UserPoolClient"]["ClientId"]
                 )
                 client = client_response["UserPoolClient"]["ClientId"]  # type: ignore # noqa: E501
-            except self._cognito_client.exceptions.ResourceNotFoundException:
+            except \
+                self._cognito_client.exceptions.ResourceNotFoundException as \
+                    err:
+                self._logger.error(err.with_traceback(None))
                 return None
+
         assert isinstance(client, str)
         return client
 

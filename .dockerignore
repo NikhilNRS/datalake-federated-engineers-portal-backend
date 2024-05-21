@@ -122,6 +122,8 @@ celerybeat.pid
 
 # Environments
 .env
+.env.*
+!.env.dist
 .venv
 env/
 venv/
@@ -161,4 +163,5 @@ cython_debug/
 .idea/
 
 # Skip docs
+docs
 README.md
