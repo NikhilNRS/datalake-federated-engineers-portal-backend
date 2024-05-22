@@ -1,4 +1,5 @@
 import logging
+import random
 from typing import Literal
 
 import boto3
@@ -19,7 +20,7 @@ from services.cognito import CognitoService
 
 from dotenv import load_dotenv
 
-from services.secrets import SecretsService
+from services.secrets import SecretsService, PKCESecretGenerator
 from services.sessions import DogpileSessionStore
 from services.tokens import AuthorizationCodeBackend, TokenVerificationService
 
@@ -34,6 +35,8 @@ class ServiceContainer(containers.DeclarativeContainer):
     STS_SERVICE_NAME: Literal["sts"] = "sts"
     SECRETS_MANAGER_SERVICE_NAME: Literal["secretsmanager"] = "secretsmanager"
     ELASTICACHE_SERVICE_NAME: Literal["elasticache"] = "elasticache"
+
+    SESSION_PKCE_SECRET_KEY = "pkce_secret"
 
     # configuration
     config = providers.Configuration()
@@ -55,11 +58,17 @@ class ServiceContainer(containers.DeclarativeContainer):
     config.app_env.from_env("APP_ENV", required=True)
     config.cache_secret_name.from_env("CACHE_SECRET_NAME", None)
     config.log_level.from_env("LOG_LEVEL", "WARNING")
+    config.session_pkce_secret_key.from_value(SESSION_PKCE_SECRET_KEY)
 
     # dependencies
     logger: Provider[logging.Logger] = providers.Callable(
         get_logger
     ).add_args(config.log_level())
+
+    crypto_safe_str_generator = providers.Singleton(random.SystemRandom)
+    pkce_secret_generator = providers.Singleton(PKCESecretGenerator).add_args(
+        crypto_safe_str_generator
+    )
 
     boto3_session = providers.Singleton(boto3.session.Session)
     aws_cognito_client: Provider[CognitoIdentityProviderClient] = \

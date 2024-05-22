@@ -154,6 +154,7 @@ class AuthorizationCodeBackend(AuthenticationBackend):
     AUTHORIZATION_CODE_PARAMETER = "code"
     CLIENT_ID_PARAMETER = "client_id"
     REDIRECT_URI_PARAMETER = "redirect_uri"
+    CODE_VERIFIER_PARAMETER = "code_verifier"
     ACCESS_TOKEN_KEY = "access_token"
     ID_TOKEN_KEY = "id_token"
     EMAIL_CLAIM_KEY = "email"
@@ -207,8 +208,6 @@ class AuthorizationCodeBackend(AuthenticationBackend):
         if authorization_code is None or authorization_code == "":
             return AuthCredentials(), UnauthenticatedUser()
 
-        # TODO: Perhaps use PKCE with codes, to make it safer:
-        #  https://docs.aws.amazon.com/cognito/latest/developerguide/using-pkce-in-authorization-code.html
         service_container = conn.app.state.service_container
         client_id = service_container.config.cognito_client_id()
         redirect_url = f"{service_container.config.app_base_url()}/"
@@ -220,12 +219,16 @@ class AuthorizationCodeBackend(AuthenticationBackend):
 
         # If we have not used the authorization code: obtain tokens
         if not cached_tokens:
+            session_key = service_container.config.session_pkce_secret_key()
+            code_verifier = conn\
+                .session[session_key][self.CODE_VERIFIER_PARAMETER]
             token_request_data = {
                 self.GRANT_TYPE_PARAMETER:
                     TokenRequestGrantTypes.AUTHORIZATION_CODE.value,
                 self.AUTHORIZATION_CODE_PARAMETER: authorization_code,
                 self.CLIENT_ID_PARAMETER: client_id,
-                self.REDIRECT_URI_PARAMETER: redirect_url
+                self.REDIRECT_URI_PARAMETER: redirect_url,
+                self.CODE_VERIFIER_PARAMETER: code_verifier
             }
 
             token_response = requests.post(
@@ -261,9 +264,6 @@ class AuthorizationCodeBackend(AuthenticationBackend):
                 id_token,
                 access_token
             )
-            # TODO: Save access_token + refresh_token in server_side session.
-            #  Perhaps using or a fork thereof:
-            #  https://github.com/auredentan/starlette-session/
 
             identity_pool_identity_id = \
                 self._cognito_service.get_cognito_identity_id(id_token)

@@ -4,6 +4,7 @@ from fastapi import HTTPException
 from fastapi.security import SecurityScopes
 from starlette import status
 from starlette.requests import Request
+from starsessions import load_session
 
 from dependency_injection.container import ServiceContainer
 from models.enums import AuthorizeRequestResponseTypes
@@ -18,19 +19,29 @@ async def check_user_login(
     redirect_url = f"{service_container.config.app_base_url()}/"
     cognito_service = service_container.cognito_service()
 
+    # load the session so that we can store the pkce secret
+    await load_session(request)
+
     if not request.user.is_authenticated:
-        # TODO: Call Cognito service here and store only the
-        #  code challenge in a cookie. See:
-        #  https://stackoverflow.com/q/74430285/10243474
-        #  We can achieve this through an http header as follows:
-        #  https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie
-        #  Or use the server-side session for this purpose
+        pkce_secret_generator = service_container.pkce_secret_generator()
+        pkce_secret_session_key = service_container.config\
+            .session_pkce_secret_key()
+        pkce_secret = pkce_secret_generator.generate_pkce_secret()
+
+        # store pkce secret in session
+        request.session[pkce_secret_session_key] = pkce_secret.model_dump(
+            exclude={"code_verifier_hash"}
+        )
+
         query_params = {
             "response_type":
                 AuthorizeRequestResponseTypes.AUTHORIZATION_CODE.value,
             "client_id": client_id,
-            "redirect_uri": redirect_url
+            "redirect_uri": redirect_url,
+            "code_challenge": pkce_secret.code_challenge,
+            "code_challenge_method": "S256"
         }
+
         query_params_str = urllib.parse.urlencode(query_params)
 
         cognito_authorize_url = \
