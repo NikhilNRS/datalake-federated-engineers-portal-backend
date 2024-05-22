@@ -1,10 +1,16 @@
 import json
+import random
+from base64 import urlsafe_b64encode
+from hashlib import sha256
 from logging import Logger
+from string import ascii_letters, digits
 from typing import Literal, Any
 
 from botocore.exceptions import ClientError
 from mypy_boto3_secretsmanager import SecretsManagerClient
 from mypy_boto3_secretsmanager.type_defs import GetSecretValueResponseTypeDef
+
+from models.pkce import PKCESecret
 
 
 class SecretsService:
@@ -53,3 +59,28 @@ class SecretsService:
             return secret_response[self._SECRET_STRING_KEY]
         else:
             return None
+
+
+class PKCESecretGenerator:
+    def __init__(self, random_str_generator: random.Random):
+        """Creates a PKCE Secret generator
+
+        :param random_str_generator: A cryptographically strong random
+        number generator
+        """
+        self._random_generator = random_str_generator
+
+    def generate_pkce_secret(self) -> PKCESecret:
+        character_set = ascii_letters + digits
+        random_chars = self._random_generator.choices(character_set, k=128)
+        code_verifier = "".join(random_chars)
+        code_verifier_hash = sha256(code_verifier.encode()).digest()
+        code_challenge = urlsafe_b64encode(code_verifier_hash)\
+            .decode()\
+            .rstrip("=")
+
+        return PKCESecret(
+            code_verifier=code_verifier,
+            code_verifier_hash=code_verifier_hash,
+            code_challenge=code_challenge
+        )
