@@ -1603,7 +1603,7 @@ tests = ["coverage[toml] (==5.0.4)", "pytest (>=6.0.0,<7.0.0)"]
 [package.source]
 type = "git"
 url = "https://github.com/jpadilla/pyjwt.git"
-reference = "master"
+reference = "HEAD"
 resolved_reference = "ab8176abe21e550dbc1c9a6bb7e78ad80853bfb1"
 
 [[package]]
@@ -2308,4 +2308,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "01ec96bb0577a7c025b82ce658cf777149642debbec69fc67a40faf94b9030e6"
+content-hash = "a044e745538b55e89237c54c3372afb7ecc434804d75e18c224524d57c53baf2"
