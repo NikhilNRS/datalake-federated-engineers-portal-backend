@@ -1,11 +1,12 @@
+import base64
+from logging import Logger
 from typing import Optional, Any
 
 import requests
 import starsessions
 from dogpile.cache import CacheRegion
-from dogpile.cache.api import CachedValue, NoValue
-from jose import JWTError, jwt
-from jose.backends.base import Key
+from dogpile.cache.api import NoValue
+import jwt
 from starlette.authentication import AuthenticationBackend, AuthCredentials, \
     BaseUser, UnauthenticatedUser
 from starlette.requests import HTTPConnection
@@ -19,8 +20,9 @@ from services.cognito import CognitoService
 class TokenVerificationService:
     VALID_TOKEN_TYPES = [TokenUseTypes.ACCESS_TOKEN, TokenUseTypes.ID_TOKEN]
 
-    def __init__(self, cognito_service: CognitoService):
+    def __init__(self, cognito_service: CognitoService, logger: Logger):
         self._cognito_service = cognito_service
+        self._logger = logger
 
     def is_valid_access_token(
         self,
@@ -68,7 +70,10 @@ class TokenVerificationService:
     ) -> Optional[dict]:
         try:
             token_header = jwt.get_unverified_header(id_token)
-            token_payload = jwt.get_unverified_claims(id_token)
+            token_payload = jwt.decode(
+                jwt=id_token,
+                options={"verify_signature": False}
+            )
 
             token_key_id = token_header.get("kid")
             cognito_key = self._get_json_web_key(token_key_id)
@@ -79,18 +84,25 @@ class TokenVerificationService:
             assert token_client_id is not None
 
             cognito_client_id = self._cognito_service.get_user_pool_client(
-               token_client_id
+                token_client_id
             )
 
             decoded_token = jwt.decode(
-                token=id_token,
-                key=cognito_key.to_dict(),
+                jwt=id_token,
+                key=cognito_key,
+                algorithms=[cognito_key.algorithm_name],
                 audience=cognito_client_id,
-                algorithms=cognito_key.to_dict().get("alg"),
-                issuer=self._cognito_service.get_issuer_url(),
-                access_token=access_token
+                issuer=self._cognito_service.get_issuer_url()
             )
-        except (JWTError, AssertionError):
+
+            self._has_valid_access_token_hash(
+                id_token,
+                access_token,
+                cognito_key,
+                cognito_client_id
+            )
+        except (jwt.PyJWTError, AssertionError) as err:
+            self._logger.error(err.with_traceback(None))
             return None
 
         return decoded_token
@@ -109,12 +121,13 @@ class TokenVerificationService:
             assert cognito_key is not None
 
             decoded_token = jwt.decode(
-                token=access_token,
-                key=cognito_key.to_dict(),
-                algorithms=cognito_key.to_dict().get("alg"),
+                jwt=access_token,
+                key=cognito_key,
+                algorithms=[cognito_key.algorithm_name],
                 issuer=self._cognito_service.get_issuer_url()
             )
-        except (JWTError, AssertionError):
+        except (jwt.PyJWTError, AssertionError) as err:
+            self._logger.error(err.with_traceback(None))
             return None
 
         return decoded_token
@@ -135,7 +148,7 @@ class TokenVerificationService:
     def _get_token_use_type(token_payload: dict) -> TokenUseTypes:
         return TokenUseTypes(token_payload["token_use"])
 
-    def _get_json_web_key(self, key_id) -> Optional[Key]:
+    def _get_json_web_key(self, key_id) -> Optional[jwt.PyJWK]:
         return self._cognito_service.get_json_web_key(key_id)
 
     def _has_valid_token_type(self, token_type: Optional[str]):
@@ -147,6 +160,46 @@ class TokenVerificationService:
         )
 
         return bool(cognito_client_id)
+
+    @staticmethod
+    def _has_valid_access_token_hash(
+        id_token: str,
+        access_token: str,
+        signing_key: jwt.PyJWK,
+        cognito_client_id: Optional[str]
+    ) -> None:
+        """Validates the access_token hash claim in an id-token. Implemented
+        here, as it is kept outside PyJWT, because the at_hash claim does not
+        occur in the JWT standard, but only in the OIDC standard. This
+        implementation is based on the example found in the pyjwt docs:
+
+        https://pyjwt.readthedocs.io/en/stable/usage.html#oidc-login-flow
+
+        :param id_token: the id token as provided by Cognito
+        :param access_token: the access token as provided by Cognito
+        :param signing_key: The cryptographic key that signed both tokens
+        , modeled as a PyJWK
+        :param cognito_client_id: The client id we can use to verify the
+         id-token
+        """
+        data = jwt.api_jwt.decode_complete(
+            jwt=id_token,
+            key=signing_key,
+            audience=cognito_client_id,
+            algorithms=[signing_key.algorithm_name]
+        )
+
+        payload, header = data["payload"], data["header"]
+        algorithm_object = jwt.get_algorithm_by_name(header["alg"])
+
+        access_token_digest = algorithm_object.compute_hash_digest(
+            access_token.encode(encoding="ascii")
+        )
+        at_hash_claim = base64.urlsafe_b64encode(
+            access_token_digest[: (len(access_token_digest) // 2)]
+        ).decode().rstrip("=")
+
+        assert at_hash_claim == payload["at_hash"]
 
 
 class AuthorizationCodeBackend(AuthenticationBackend):
@@ -198,7 +251,7 @@ class AuthorizationCodeBackend(AuthenticationBackend):
                 user_session_info[self.ID_TOKEN_KEY][self.COGNITO_GROUPS_KEY],
                 user_session_info[self.GROUP_LOGIN_LINKS_KEY],
                 user_session_info[self.ID_TOKEN_KEY]
-                                 [self.FIRST_NAME_CLAIM_KEY],
+                [self.FIRST_NAME_CLAIM_KEY],
                 user_session_info[self.ID_TOKEN_KEY][self.LAST_NAME_CLAIM_KEY]
 
             )
@@ -220,7 +273,7 @@ class AuthorizationCodeBackend(AuthenticationBackend):
         # If we have not used the authorization code: obtain tokens
         if not cached_tokens:
             session_key = service_container.config.session_pkce_secret_key()
-            code_verifier = conn\
+            code_verifier = conn \
                 .session[session_key][self.CODE_VERIFIER_PARAMETER]
             token_request_data = {
                 self.GRANT_TYPE_PARAMETER:
@@ -282,7 +335,7 @@ class AuthorizationCodeBackend(AuthenticationBackend):
             group_login_link_mapping = dict()
 
             for group, role in group_role_mapping.items():
-                login_link = self._aws_console_service.\
+                login_link = self._aws_console_service. \
                     get_console_url_by_openid_token(
                         role,
                         open_id_token,
@@ -293,8 +346,8 @@ class AuthorizationCodeBackend(AuthenticationBackend):
             # By now we've done all token exchanges, hence we can save the
             # info in the session for re-use
             user_session_info = {
-              self.ID_TOKEN_KEY: decoded_id_token,
-              "group_login_link_mapping": group_login_link_mapping
+                self.ID_TOKEN_KEY: decoded_id_token,
+                "group_login_link_mapping": group_login_link_mapping
             }
 
             conn.session[self.USER_SESSION_KEY] = user_session_info
