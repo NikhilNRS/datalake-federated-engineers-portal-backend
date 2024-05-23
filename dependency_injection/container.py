@@ -187,7 +187,8 @@ class ServiceContainer(containers.DeclarativeContainer):
     token_verification_service = providers.Singleton(
         TokenVerificationService
     ).add_args(
-        cognito_service
+        cognito_service,
+        logger
     )
 
     aws_console_service = providers.Singleton(

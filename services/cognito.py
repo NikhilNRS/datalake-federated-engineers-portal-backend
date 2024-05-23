@@ -3,8 +3,7 @@ from typing import Optional, Literal
 
 import requests
 from dogpile.cache import CacheRegion
-from jose import jwk
-from jose.backends.base import Key
+import jwt
 from mypy_boto3_cognito_identity import CognitoIdentityClient
 from mypy_boto3_cognito_idp import CognitoIdentityProviderClient
 
@@ -99,7 +98,7 @@ class CognitoService:
         # store keys in cache
         self._cache_client.set_multi(json_web_keys)
 
-    def get_json_web_key(self, key_id: str) -> Optional[Key]:
+    def get_json_web_key(self, key_id: str) -> Optional[jwt.PyJWK]:
         """All access tokens given out by AWS Cognito are cryptographically
         signed with an RSA Key pair. Cognito has 2 key pairs, that are
         regularly rotated. This method obtains the public key for the given
@@ -121,7 +120,7 @@ class CognitoService:
 
         try:
             assert isinstance(result, dict)
-            return jwk.construct(result)
+            return jwt.PyJWK(result)
         except AssertionError:
             return None
 
