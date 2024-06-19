@@ -72,7 +72,7 @@ def home(request: Request):
 
     login_links_counts = Counter(request.user.login_links.values())
     user_has_no_login_links = \
-        login_links_counts.get(None) == len(request.user.login_links),
+        login_links_counts.get(None) == len(request.user.login_links)
 
     page_content = {
         "title": f"{request.app.title} - Home",
