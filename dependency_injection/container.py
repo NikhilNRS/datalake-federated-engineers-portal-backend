@@ -40,7 +40,6 @@ class ServiceContainer(containers.DeclarativeContainer):
 
     # configuration
     config = providers.Configuration()
-    config.app_base_url.from_env("APP_BASE_URL", required=True)
     config.cognito_client_id.from_env("COGNITO_CLIENT_ID", required=True)
     config.cognito_user_pool_domain.from_env(
         "COGNITO_USER_POOL_DOMAIN",
@@ -194,8 +193,7 @@ class ServiceContainer(containers.DeclarativeContainer):
     aws_console_service = providers.Singleton(
         AWSConsoleService
     ).add_args(
-        aws_sts_client,
-        config.app_base_url()
+        aws_sts_client
     )
 
     authorization_code_backend = providers.Singleton(
