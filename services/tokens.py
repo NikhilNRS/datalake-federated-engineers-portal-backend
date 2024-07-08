@@ -263,7 +263,8 @@ class AuthorizationCodeBackend(AuthenticationBackend):
 
         service_container = conn.app.state.service_container
         client_id = service_container.config.cognito_client_id()
-        redirect_url = f"{service_container.config.app_base_url()}/"
+        app_base_url = f"{conn.url.scheme}://{conn.url.netloc}"
+        redirect_url = f"{app_base_url}/"
 
         # If there is an authorization code, check if we used it before
         cached_tokens = self.get_tokens_from_cache_by_authorization_code(
@@ -339,7 +340,8 @@ class AuthorizationCodeBackend(AuthenticationBackend):
                     get_console_url_by_openid_token(
                         role,
                         open_id_token,
-                        decoded_id_token[self.EMAIL_CLAIM_KEY]
+                        decoded_id_token[self.EMAIL_CLAIM_KEY],
+                        app_base_url
                     )
                 group_login_link_mapping[group] = login_link
 

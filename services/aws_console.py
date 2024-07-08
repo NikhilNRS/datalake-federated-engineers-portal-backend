@@ -31,15 +31,15 @@ class AWSConsoleService:
     _ISSUER_PARAM = "Issuer"
     _DESTINATION_PARAM = "Destination"
 
-    def __init__(self, sts_client: STSClient, app_base_url: str):
+    def __init__(self, sts_client: STSClient):
         self._sts_client = sts_client
-        self._base_url = app_base_url
 
     def get_console_url_by_openid_token(
         self,
         role_arn: Optional[str],
         openid_token: str,
-        user_email: str
+        user_email: str,
+        app_base_url: str
     ) -> Optional[str]:
         # Ensure we do not try to retrieve credentials when no role
         # is provided
@@ -81,7 +81,7 @@ class AWSConsoleService:
 
         signin_url_query_params = {
             self._ACTION_PARAM: "login",
-            self._ISSUER_PARAM: self._base_url,
+            self._ISSUER_PARAM: app_base_url,
             self._DESTINATION_PARAM: self._AWS_CONSOLE_MAIN_ENDPOINT,
             self._SIGNIN_TOKEN_KEY: signin_token
         }
