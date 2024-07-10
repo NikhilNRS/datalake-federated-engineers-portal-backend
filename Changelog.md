@@ -5,7 +5,6 @@
 - DLAK-2303 - Make smarter use of fastapi to format APP_BASE_URL, so that the 
   env variable is no longer needed.
 
-
 ## 0.1.1 - 19-06-2024
 
 - DLAK-2034 - Fix bug where login links did not appear

@@ -1,24 +1,28 @@
-FROM python:3.11-slim AS requirements-stage
+FROM python:3.11-slim AS base-stage
 
-WORKDIR /tmp
-
-RUN pip install poetry
-
-COPY ./pyproject.toml ./poetry.lock /tmp/
-
-RUN poetry export -f requirements.txt --output requirements.txt --without-hashes
-
-FROM python:3.11-slim
+ENV VENV_PATH="/app/.venv"
 
 WORKDIR /app
 
-RUN apt-get update -y && apt-get upgrade -y && DEBIAN_FRONTEND=noninteractive apt-get install -y apt-utils && apt-get install -y git
+RUN DEBIAN_FRONTEND=noninteractive apt-get update -y && apt-get upgrade -y
 
-COPY --from=requirements-stage /tmp/requirements.txt /app/requirements.txt
+FROM base-stage AS builder
 
-RUN pip install --no-cache-dir --upgrade -r /app/requirements.txt && rm -rf /root/.cache/pip/* && apt-get remove -y git
+RUN apt-get install -y git && pip install poetry
+
+COPY ./pyproject.toml ./poetry.lock /app/
+
+RUN POETRY_VIRTUALENVS_IN_PROJECT=true POETRY_NO_INTERACTION=1 poetry install
+
+FROM base-stage AS final
+
+COPY --from=builder $VENV_PATH $VENV_PATH
 
 COPY . /app
+
+ENV PATH="$VENV_PATH/bin:$PATH"
+
+RUN . $VENV_PATH/bin/activate
 
 EXPOSE 80
 
