@@ -54,7 +54,10 @@ class ServiceContainer(containers.DeclarativeContainer):
         required=True
     )
     config.aws_region.from_env("AWS_REGION", required=True)
-    config.app_env.from_env("APP_ENV", required=True)
+    config.app_env.from_env(
+        "APP_ENV",
+        required=True
+    )
     config.cache_secret_name.from_env("CACHE_SECRET_NAME", None)
     config.log_level.from_env("LOG_LEVEL", "WARNING")
     config.session_pkce_secret_key.from_value(SESSION_PKCE_SECRET_KEY)
@@ -124,7 +127,10 @@ class ServiceContainer(containers.DeclarativeContainer):
             logger
         )
 
-    if config.app_env() == "development":
+    cache_credential_provider: Provider[ElasticacheIAMProvider] | None = \
+        None
+
+    if config.app_env() == "local":
         cache_credential_provider: Provider[ElasticacheIAMProvider] | None = \
             None
         config.cache_endpoint.from_value(None)
@@ -158,10 +164,10 @@ class ServiceContainer(containers.DeclarativeContainer):
 
     dogpile_cache_region = providers.Selector(
         config.app_env,
-        development=providers.Resource(DogpileCacheDevResource).add_args(
+        local=providers.Resource(DogpileCacheDevResource).add_args(
             config.cache_connection_url()
         ),
-        production=providers.Resource(DogpileCacheProdResource).add_args(
+        aws=providers.Resource(DogpileCacheProdResource).add_args(
             config.cache_endpoint(),
             cache_credential_provider
         )

@@ -253,7 +253,6 @@ class AuthorizationCodeBackend(AuthenticationBackend):
                 user_session_info[self.ID_TOKEN_KEY]
                 [self.FIRST_NAME_CLAIM_KEY],
                 user_session_info[self.ID_TOKEN_KEY][self.LAST_NAME_CLAIM_KEY]
-
             )
 
         # If user is not logged in, check if we can log the user in through
