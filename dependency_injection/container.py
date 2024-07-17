@@ -131,11 +131,9 @@ class ServiceContainer(containers.DeclarativeContainer):
         None
 
     if config.app_env() == "local":
-        cache_credential_provider: Provider[ElasticacheIAMProvider] | None = \
-            None
         config.cache_endpoint.from_value(None)
         config.cache_connection_url.from_env("CACHE_CONNECTION_URL")
-    else:
+    elif config.app_env() == "aws":
         config.cache_user.from_value(
             secrets_service().get_json_secret(config.cache_secret_name())[
                 "user"
@@ -161,6 +159,8 @@ class ServiceContainer(containers.DeclarativeContainer):
                 aws_request_signer,
                 logger
             )
+    else:
+        raise ValueError("Only 'aws' and 'local' are valid APP_ENV values!")
 
     dogpile_cache_region = providers.Selector(
         config.app_env,
