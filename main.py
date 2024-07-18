@@ -1,19 +1,20 @@
 from collections import Counter
-
 import toml
 import uvicorn
 from dotenv import load_dotenv
 import fastapi
-from fastapi import Security, Request
+from fastapi import Security, Request, Response, HTTPException, status
 from starlette.middleware.authentication import AuthenticationMiddleware
-from starlette.responses import FileResponse
+from starlette.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from starsessions import SessionMiddleware
+from starsessions import SessionMiddleware, regenerate_session_id
+import os
 
 from dependency_injection.container import ServiceContainer
 from dependency_injection.fast_api import check_user_login
 
+# Load environment variables from .env file
 load_dotenv()
 
 API_VERSION = toml.load("pyproject.toml")["tool"]["poetry"]["version"]
@@ -21,7 +22,7 @@ API_DESCRIPTION = toml.load("pyproject.toml")["tool"]["poetry"]["description"]
 
 app = fastapi.FastAPI(
     title="PostNL - Federated Engineers login portal",
-    descripton=API_DESCRIPTION,
+    description=API_DESCRIPTION,
     version=API_VERSION,
     docs_url=None,
     redoc_url=None,
@@ -58,7 +59,6 @@ app.add_middleware(
     lifetime=3600
 )
 
-
 @app.get(
     "/",
     dependencies=[
@@ -84,11 +84,28 @@ def home(request: Request):
 
     return templates.TemplateResponse("home.html", page_content)
 
-
 @app.get("/favicon.ico", include_in_schema=False)
 def get_favicon():
     return FileResponse("assets/favicon.ico")
 
+@app.get("/logout")
+async def logout(request: Request, response: Response):
+    if not request.session.get("user"):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not logged in")
+
+    # Clear the server-side session
+    request.session.clear()
+
+    # Regenerate the session ID
+    await regenerate_session_id(request)
+
+    # Logout from Cognito
+    cognito_logout_url = (
+        f"https://{os.getenv('COGNITO_USER_POOL_DOMAIN')}.auth.{os.getenv('AWS_REGION')}.amazoncognito.com/logout?"
+        f"client_id={os.getenv('COGNITO_CLIENT_ID')}&"
+        f"logout_uri={os.getenv('LOGOUT_REDIRECT_URI')}"
+    )
+    return RedirectResponse(url=cognito_logout_url)
 
 if __name__ == '__main__':
     uvicorn.run(app, host="0.0.0.0", port=8000)
