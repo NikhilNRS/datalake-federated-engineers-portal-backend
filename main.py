@@ -3,13 +3,12 @@ import toml
 import uvicorn
 from dotenv import load_dotenv
 import fastapi
-from fastapi import Security, Request, Response, HTTPException, status
+from fastapi import Security, Request, HTTPException, status
 from starlette.middleware.authentication import AuthenticationMiddleware
-from starlette.responses import FileResponse, RedirectResponse
+from starlette.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starsessions import SessionMiddleware, regenerate_session_id
-import os
 
 from dependency_injection.container import ServiceContainer
 from dependency_injection.fast_api import check_user_login
@@ -88,24 +87,28 @@ def home(request: Request):
 def get_favicon():
     return FileResponse("assets/favicon.ico")
 
-@app.get("/logout")
-async def logout(request: Request, response: Response):
-    if not request.session.get("user"):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not logged in")
+@app.get("/logout", dependencies=[
+        Security(check_user_login, scopes=[])
+    ])
+async def logout(request: Request):
+    service_container = request.app.state.service_container
+    cognito_service = service_container.cognito_service()
 
-    # Clear the server-side session
-    request.session.clear()
+    app_base_url = f"{request.url.scheme}://{request.url.netloc}"
+    redirect_url = f"{app_base_url}/"
 
-    # Regenerate the session ID
-    await regenerate_session_id(request)
-
-    # Logout from Cognito
-    cognito_logout_url = (
-        f"https://{os.getenv('COGNITO_USER_POOL_DOMAIN')}.auth.{os.getenv('AWS_REGION')}.amazoncognito.com/logout?"
-        f"client_id={os.getenv('COGNITO_CLIENT_ID')}&"
-        f"logout_uri={os.getenv('LOGOUT_REDIRECT_URI')}"
+    cognito_logout_url = cognito_service.get_logout_endpoint(
+        redirect_url
     )
-    return RedirectResponse(url=cognito_logout_url)
 
+    request.session.clear()
+    regenerate_session_id(request)
+
+    raise HTTPException(
+        status_code=status.HTTP_307_TEMPORARY_REDIRECT,
+        headers={'Location': cognito_logout_url}
+    )
+
+    
 if __name__ == '__main__':
     uvicorn.run(app, host="0.0.0.0", port=8000)

@@ -186,7 +186,8 @@ class ServiceContainer(containers.DeclarativeContainer):
         config.aws_region(),
         config.cognito_user_pool_domain(),
         config.cognito_user_pool_id(),
-        config.cognito_identity_pool_id()
+        config.cognito_identity_pool_id(),
+        config.cognito_client_id()
     )
 
     token_verification_service = providers.Singleton(
