@@ -1,0 +1,37 @@
+name: Entrypoint feature
+run-name: Entrypoint feature by @${{ github.actor }}
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  run-mypy-and-pytest:
+    name: Run mypy
+    uses: ./.github/workflows/reusable-run-mypy.yaml
+    secrets: inherit
+
+  get-files-with-changes:
+    name: Get Files with changes
+    uses: ./.github/workflows/reusable-get-files-with-changes.yaml
+
+  check-if-application-version-is-bumped:
+    name: Check if the application files have changed, version is bumped
+    needs: get-files-with-changes
+    if: needs.get-files-with-changes.outputs.changed-files != '[]'
+    uses: ./.github/workflows/reusable-check-package-version-bumping.yaml
+    secrets: inherit
+    
+  deploy-docker-image-to-dev:
+    name: Deploy Docker Image to Development
+    needs: [run-mypy-and-pytest, check-if-application-version-is-bumped]
+    if: |
+      !failure() &&
+      !cancelled()
+    uses: ./.github/workflows/reusable-build-deploy-docker-image.yaml
+    with:
+      environment: development
+      stage: dev
+      application-version: ${{ needs.check-if-application-version-is-bumped.outputs.application-version }}
+    secrets: inherit
+   

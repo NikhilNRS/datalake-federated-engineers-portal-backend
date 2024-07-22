@@ -1,0 +1,62 @@
+name: Entrypoint feature
+run-name: Entrypoint feature by @${{ github.actor }}
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+
+  get-files-with-changes:
+    name: Get Files with changes
+    uses: ./.github/workflows/reusable-get-files-with-changes.yaml
+
+  check-if-application-version-is-bumped:
+    name: Check if the application files have changed, version is bumped
+    needs: get-files-with-changes
+    if: needs.get-files-with-changes.outputs.changed-files != '[]'
+    uses: ./.github/workflows/reusable-check-package-version-bumping.yaml
+    secrets: inherit
+    
+  deploy-docker-image-to-tst:
+    name: Deploy Docker Image to Test
+    needs: check-if-application-version-is-bumped
+    if: |
+      !failure() &&
+      !cancelled()
+    uses: ./.github/workflows/reusable-build-deploy-docker-image.yaml
+    with:
+      environment: test
+      stage: tst
+      application-version: ${{ needs.check-if-application-version-is-bumped.outputs.application-version }}
+    secrets: inherit
+
+
+  deploy-docker-image-to-acc:
+    name: Deploy Docker Image to Acceptance
+    needs: [check-if-application-version-is-bumped, deploy-docker-image-to-tst]
+    if: |
+      !failure() &&
+      !cancelled()
+    uses: ./.github/workflows/reusable-build-deploy-docker-image.yaml
+    with:
+      environment: acceptance
+      stage: acc
+      application-version: ${{ needs.check-if-application-version-is-bumped.outputs.application-version }}
+    secrets: inherit
+
+
+  deploy-docker-image-to-prd:
+    name: Deploy Docker Image to Production
+    needs: [check-if-application-version-is-bumped, deploy-docker-image-to-acc]
+    if: |
+      !failure() &&
+      !cancelled()
+    uses: ./.github/workflows/reusable-build-deploy-docker-image.yaml
+    with:
+      environment: production
+      stage: prd
+      application-version: ${{ needs.check-if-application-version-is-bumped.outputs.application-version }}
+    secrets: inherit
+
+    
