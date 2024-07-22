@@ -1,0 +1,51 @@
+name: Entrypoint feature
+run-name: Entrypoint feature by @${{ github.actor }}
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  get-files-with-changes:
+    name: Get Files with changes
+    uses: ./.github/workflows/reusable-get-files-with-changes.yaml
+    
+  deploy-docker-image-to-tst:
+    name: Deploy Docker Image to Test
+    needs: [get-files-with-changes]
+    if: needs.get-files-with-changes.outputs.changed-files != '[]' &&
+      !failure() &&
+      !cancelled()
+    uses: ./.github/workflows/reusable-build-deploy-docker-image.yaml
+    with:
+      environment: test
+      stage: tst
+    secrets: inherit
+
+
+  deploy-docker-image-to-acc:
+    name: Deploy Docker Image to Acceptance
+    needs: [get-files-with-changes, deploy-docker-image-to-tst]
+    if: needs.get-files-with-changes.outputs.changed-files != '[]' &&
+      !failure() &&
+      !cancelled()
+    uses: ./.github/workflows/reusable-build-deploy-docker-image.yaml
+    with:
+      environment: acceptance
+      stage: acc
+    secrets: inherit
+
+
+  deploy-docker-image-to-prd:
+    name: Deploy Docker Image to Production
+    needs: [get-files-with-changes, deploy-docker-image-to-acc]
+    if: needs.get-files-with-changes.outputs.changed-files != '[]' &&
+      !failure() &&
+      !cancelled()
+    uses: ./.github/workflows/reusable-build-deploy-docker-image.yaml
+    with:
+      environment: production
+      stage: prd
+    secrets: inherit
+
+    

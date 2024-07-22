@@ -1,0 +1,75 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+name: Validate and label PR
+run-name: Validate and label PR by @${{ github.actor }}
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate-pr-title:
+    name: Validate PR title
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+
+    steps:
+      - uses: amannn/action-semantic-pull-request@e9fabac35e210fea40ca5b14c0da95a099eff26f  # 5.4.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          subjectPattern: ^[A-Z].+$
+          subjectPatternError: "PR title must indicate the intent of the PR, followed by a title that starts with a capital letter, e.g. feat: My pr changes"
+
+  label-pr:
+    name: Label PR with folder names
+    runs-on: ubuntu-latest
+    steps:
+      - name: Label dependency_injection
+        uses: tinkurlab/monorepo-pr-labeler-action@026d1e71df075b29ee3986875bfbb8a5b5d969f1  # 4.2.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BASE_DIRS: "dependency_injection"
+        with:
+          prefix: "📚 dependency_injection: "
+
+      - name: Label models
+        uses: tinkurlab/monorepo-pr-labeler-action@026d1e71df075b29ee3986875bfbb8a5b5d969f1  # 4.2.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BASE_DIRS: "models"
+        with:
+          prefix: "🧱 models: "
+
+      - name: Label services
+        uses: tinkurlab/monorepo-pr-labeler-action@026d1e71df075b29ee3986875bfbb8a5b5d969f1  # 4.2.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BASE_DIRS: "services"
+        with:
+          prefix: "🛠️ services: "
+
+      - name: Label .github
+        uses: tinkurlab/monorepo-pr-labeler-action@026d1e71df075b29ee3986875bfbb8a5b5d969f1  # 4.2.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BASE_DIRS: ".github"
+        with:
+          prefix: "🦾 .github: "
+
+
+      - name: Label Config Files
+        uses: tinkurlab/monorepo-pr-labeler-action@026d1e71df075b29ee3986875bfbb8a5b5d969f1  # 4.2.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BASE_DIRS: "/"
+        with:
+          prefix: "🧰 Config: "
+
+      - name: Label Docs
+        uses: tinkurlab/monorepo-pr-labeler-action@026d1e71df075b29ee3986875bfbb8a5b5d969f1  # 4.2.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BASE_DIRS: "docs"
+        with:
+          prefix: "📚 docs: "

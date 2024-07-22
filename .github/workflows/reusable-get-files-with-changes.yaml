@@ -1,0 +1,34 @@
+name: Detect files with changes
+
+on:
+  workflow_call:
+    outputs:
+      changed-files:
+        description: Files with changes
+        value: ${{ jobs.changes.outputs.files }}
+
+jobs:
+  changes:
+    name: Detect files with changes
+    runs-on: ubuntu-latest
+    outputs:
+      files: ${{ steps.filters.outputs.changes }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@0bc4621a3135347011ad047f9ecf449bf72ce2bd  # 3.0.0
+        id: filters
+        with:
+          filters: |
+            dependency_injection:
+              - 'dependency_injection/*.py'
+            jinja_templates:
+              - 'jinja_templates/*.html'
+            models:
+              - 'models/*.py'
+            services:
+              - 'services/*.py'
+            root:
+              - 'docker-compose.yml'
+              - 'Dockerfile'
+              - 'main.py'
+              - 'pyproject.toml'
