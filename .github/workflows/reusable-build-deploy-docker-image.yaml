@@ -12,9 +12,6 @@ on:
         description: Name of the stage
         required: true
         type: string
-      application-version:
-        description: Version of the application
-        type: string
 
 jobs:
   build-docker-image:
@@ -28,8 +25,11 @@ jobs:
         with:
           fetch-depth: 0
       
+      - name: Get application version
+        run: echo "application_version=$(grep "^version" pyproject.toml | head -n 1 | cut -d '"' -f 2)" >> $GITHUB_ENV
+
       - name: Print application version
-        run: echo "Application version is ${{ inputs.application-version }}"
+        run: echo "Application version is" $application_version
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -55,7 +55,9 @@ jobs:
           mask-password: 'true'
       
       - name: Build Docker image
-        run: docker build . -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_DEFAULT_REGION }}.amazonaws.com/federated-engineers-portal-backend-${{ inputs.stage }}:${{ inputs.application-version }}
+        run: docker build . -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_DEFAULT_REGION }}.amazonaws.com/federated-engineers-portal-backend-${{ inputs.stage }}:$application_version
 
-      - name: Upload Docker Image
-        run: docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_DEFAULT_REGION }}.amazonaws.com/federated-engineers-portal-backend-${{ inputs.stage }}:${{ inputs.application-version }}
+
+      # - name: Upload Docker Image
+      #   run: docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_DEFAULT_REGION }}.amazonaws.com/federated-engineers-portal-backend-${{ inputs.stage }}:$application_version
+

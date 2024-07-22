@@ -32,6 +32,5 @@ jobs:
     with:
       environment: development
       stage: dev
-      application-version: ${{ needs.check-if-application-version-is-bumped.outputs.application-version }}
     secrets: inherit
    

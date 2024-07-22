@@ -2,17 +2,11 @@
 name: Check if a package version is bumped
 
 on:
-  workflow_call:
-    outputs:
-      application-version:
-        description: Version of the application
-        value: ${{ jobs.check-version.outputs.application-version }}
+  workflow_call
 
 jobs:
   check-version:
     runs-on: ubuntu-latest
-    outputs:
-      application-version: ${{ steps.compare_versions.outputs.application-version }}
     steps:
       - name: Checkout current branch
         uses: actions/checkout@v4
@@ -47,6 +41,6 @@ jobs:
                   exit 1
           else
               echo "::notice ::Version $current_version is greater than $main_version"
+              exit 0
           fi
           
-          echo "application-version=$current_version" >> $GITHUB_OUTPUT
