@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.3 - 22-0702024
+
+- DLAK-1223 - Raise error when an invalid app_env value is provided
+- Enable CI/CD pipeline in repo for deployments
+
 ## 0.1.2 - 08-07-2024
 
 - DLAK-2303 - Make smarter use of fastapi to format APP_BASE_URL, so that the 
