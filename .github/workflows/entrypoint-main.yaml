@@ -6,7 +6,6 @@ on:
     branches: [main]
 
 jobs:
-
   get-files-with-changes:
     name: Get Files with changes
     uses: ./.github/workflows/reusable-get-files-with-changes.yaml

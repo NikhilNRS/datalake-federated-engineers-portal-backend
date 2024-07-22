@@ -24,8 +24,8 @@ jobs:
     
   deploy-docker-image-to-dev:
     name: Deploy Docker Image to Development
-    needs: [run-mypy-and-pytest, check-if-application-version-is-bumped]
-    if: |
+    needs: [get-files-with-changes, run-mypy-and-pytest, check-if-application-version-is-bumped]
+    if: needs.get-files-with-changes.outputs.changed-files != '[]' &&
       !failure() &&
       !cancelled()
     uses: ./.github/workflows/reusable-build-deploy-docker-image.yaml
