@@ -19,8 +19,8 @@ jobs:
     
   deploy-docker-image-to-tst:
     name: Deploy Docker Image to Test
-    needs: check-if-application-version-is-bumped
-    if: |
+    needs: [get-files-with-changes,check-if-application-version-is-bumped]
+    if: needs.get-files-with-changes.outputs.changed-files != '[]' &&
       !failure() &&
       !cancelled()
     uses: ./.github/workflows/reusable-build-deploy-docker-image.yaml
@@ -33,8 +33,8 @@ jobs:
 
   deploy-docker-image-to-acc:
     name: Deploy Docker Image to Acceptance
-    needs: [check-if-application-version-is-bumped, deploy-docker-image-to-tst]
-    if: |
+    needs: [get-files-with-changes, check-if-application-version-is-bumped, deploy-docker-image-to-tst]
+    if: needs.get-files-with-changes.outputs.changed-files != '[]' &&
       !failure() &&
       !cancelled()
     uses: ./.github/workflows/reusable-build-deploy-docker-image.yaml
@@ -47,8 +47,8 @@ jobs:
 
   deploy-docker-image-to-prd:
     name: Deploy Docker Image to Production
-    needs: [check-if-application-version-is-bumped, deploy-docker-image-to-acc]
-    if: |
+    needs: [get-files-with-changes, check-if-application-version-is-bumped, deploy-docker-image-to-acc]
+    if: needs.get-files-with-changes.outputs.changed-files != '[]' &&
       !failure() &&
       !cancelled()
     uses: ./.github/workflows/reusable-build-deploy-docker-image.yaml
