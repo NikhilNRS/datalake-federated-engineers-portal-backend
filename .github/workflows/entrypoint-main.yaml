@@ -1,5 +1,5 @@
-name: Entrypoint feature
-run-name: Entrypoint feature by @${{ github.actor }}
+name: Entrypoint Main
+run-name: Entrypoint main by @${{ github.actor }}
 
 on:
   push:
