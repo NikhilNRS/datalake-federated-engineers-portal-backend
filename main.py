@@ -78,7 +78,8 @@ def home(request: Request):
         "first_name": request.user.first_name,
         "login_links": request.user.login_links,
         "user_has_no_login_links": user_has_no_login_links,
-        "request": request
+        "request": request,
+        "logout_url": "/logout"
     }
 
     return templates.TemplateResponse("home.html", page_content)
