@@ -140,7 +140,7 @@ class CognitoService:
         :return: the OAuth2 token endpoint
         """
         return f"{self._get_cognito_user_pool_base_url()}/oauth2/token"
-    
+
     def get_logout_endpoint(self, redirect_uri: str) -> str:
         """Returns the OAuth2 logout endpoint
 
@@ -153,7 +153,8 @@ class CognitoService:
 
         query_params_str = urllib.parse.urlencode(query_params)
 
-        return f"{self._get_cognito_user_pool_base_url()}/logout?{query_params_str}"
+        return f"{self._get_cognito_user_pool_base_url()}"\
+               f"/logout?{query_params_str}"
 
     def get_user_pool_client(self, client_id: str) -> Optional[str]:
         """Retrieves additional information for a client from Cognito, but only

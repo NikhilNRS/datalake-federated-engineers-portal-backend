@@ -58,6 +58,7 @@ app.add_middleware(
     lifetime=3600
 )
 
+
 @app.get(
     "/",
     dependencies=[
@@ -79,24 +80,26 @@ def home(request: Request):
         "login_links": request.user.login_links,
         "user_has_no_login_links": user_has_no_login_links,
         "request": request,
-        "logout_url": "/logout"
+        "logout_url": "/logout",
     }
 
     return templates.TemplateResponse("home.html", page_content)
+
 
 @app.get("/favicon.ico", include_in_schema=False)
 def get_favicon():
     return FileResponse("assets/favicon.ico")
 
+
 @app.get("/logout", dependencies=[
         Security(check_user_login, scopes=[])
     ])
 async def logout(request: Request):
+    app_base_url = f"{request.url.scheme}://{request.url.netloc}"
     service_container = request.app.state.service_container
     cognito_service = service_container.cognito_service()
 
-    app_base_url = f"{request.url.scheme}://{request.url.netloc}"
-    redirect_url = "https://www.google.com/"
+    redirect_url = f"{app_base_url}/welcome"
 
     cognito_logout_url = cognito_service.get_logout_endpoint(
         redirect_url
@@ -110,6 +113,17 @@ async def logout(request: Request):
         headers={'Location': cognito_logout_url}
     )
 
-    
+
+@app.get("/welcome")
+def welcome(request: Request):
+    template_params = {
+        "login_endpoint": "/",
+        "title": f"{request.app.title} - Welcome",
+        "request": request
+    }
+
+    return templates.TemplateResponse("welcome.html", template_params)
+
+
 if __name__ == '__main__':
     uvicorn.run(app, host="0.0.0.0", port=8000)
