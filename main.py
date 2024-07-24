@@ -96,7 +96,7 @@ async def logout(request: Request):
     cognito_service = service_container.cognito_service()
 
     app_base_url = f"{request.url.scheme}://{request.url.netloc}"
-    redirect_url = f"{app_base_url}/"
+    redirect_url = f"https://google.com/"
 
     cognito_logout_url = cognito_service.get_logout_endpoint(
         redirect_url
