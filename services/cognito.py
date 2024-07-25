@@ -1,5 +1,6 @@
 from logging import Logger
 from typing import Optional, Literal
+import urllib.parse
 
 import requests
 from dogpile.cache import CacheRegion
@@ -27,7 +28,8 @@ class CognitoService:
         aws_region: str,
         user_pool_domain: str,
         user_pool_id: str,
-        identity_pool_id: str
+        identity_pool_id: str,
+        client_id: str
     ):
         self._cognito_client = cognito_api_client
         self._cognito_identity_client = cognito_identity_api_client
@@ -37,6 +39,7 @@ class CognitoService:
         self._user_pool_domain = user_pool_domain
         self._user_pool_id = user_pool_id
         self._identity_pool_id = identity_pool_id
+        self._client_id = client_id
 
     def _get_cognito_user_pool_base_url(self):
         """Returns the base url for the Cognito user pool that handles
@@ -124,19 +127,34 @@ class CognitoService:
         except AssertionError:
             return None
 
-    def get_authorize_endpoint(self):
+    def get_authorize_endpoint(self) -> str:
         """Returns the OAuth2 authorize endpoint
 
         :return: the OAuth2 authorize endpoint
         """
         return f"{self._get_cognito_user_pool_base_url()}/oauth2/authorize"
 
-    def get_token_endpoint(self):
+    def get_token_endpoint(self) -> str:
         """Returns the OAuth2 token endpoint
 
         :return: the OAuth2 token endpoint
         """
         return f"{self._get_cognito_user_pool_base_url()}/oauth2/token"
+
+    def get_logout_endpoint(self, redirect_uri: str) -> str:
+        """Returns the OAuth2 logout endpoint
+
+        :return: the OAuth2 logout endpoint
+        """
+        query_params = {
+            "client_id": self._client_id,
+            "logout_uri": redirect_uri
+        }
+
+        query_params_str = urllib.parse.urlencode(query_params)
+
+        return f"{self._get_cognito_user_pool_base_url()}"\
+               f"/logout?{query_params_str}"
 
     def get_user_pool_client(self, client_id: str) -> Optional[str]:
         """Retrieves additional information for a client from Cognito, but only

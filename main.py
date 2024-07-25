@@ -1,19 +1,19 @@
 from collections import Counter
-
 import toml
 import uvicorn
 from dotenv import load_dotenv
 import fastapi
-from fastapi import Security, Request
+from fastapi import Security, Request, HTTPException, status
 from starlette.middleware.authentication import AuthenticationMiddleware
 from starlette.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from starsessions import SessionMiddleware
+from starsessions import SessionMiddleware, regenerate_session_id
 
 from dependency_injection.container import ServiceContainer
 from dependency_injection.fast_api import check_user_login
 
+# Load environment variables from .env file
 load_dotenv()
 
 API_VERSION = toml.load("pyproject.toml")["tool"]["poetry"]["version"]
@@ -21,7 +21,7 @@ API_DESCRIPTION = toml.load("pyproject.toml")["tool"]["poetry"]["description"]
 
 app = fastapi.FastAPI(
     title="PostNL - Federated Engineers login portal",
-    descripton=API_DESCRIPTION,
+    description=API_DESCRIPTION,
     version=API_VERSION,
     docs_url=None,
     redoc_url=None,
@@ -79,7 +79,8 @@ def home(request: Request):
         "first_name": request.user.first_name,
         "login_links": request.user.login_links,
         "user_has_no_login_links": user_has_no_login_links,
-        "request": request
+        "request": request,
+        "logout_url": "/logout",
     }
 
     return templates.TemplateResponse("home.html", page_content)
@@ -88,6 +89,40 @@ def home(request: Request):
 @app.get("/favicon.ico", include_in_schema=False)
 def get_favicon():
     return FileResponse("assets/favicon.ico")
+
+
+@app.get("/logout", dependencies=[
+        Security(check_user_login, scopes=[])
+    ])
+async def logout(request: Request):
+    app_base_url = f"{request.url.scheme}://{request.url.netloc}"
+    service_container = request.app.state.service_container
+    cognito_service = service_container.cognito_service()
+
+    redirect_url = f"{app_base_url}/welcome"
+
+    cognito_logout_url = cognito_service.get_logout_endpoint(
+        redirect_url
+    )
+
+    request.session.clear()
+    regenerate_session_id(request)
+
+    raise HTTPException(
+        status_code=status.HTTP_307_TEMPORARY_REDIRECT,
+        headers={'Location': cognito_logout_url}
+    )
+
+
+@app.get("/welcome")
+def welcome(request: Request):
+    template_params = {
+        "login_endpoint": "/",
+        "title": f"{request.app.title} - Welcome",
+        "request": request
+    }
+
+    return templates.TemplateResponse("welcome.html", template_params)
 
 
 if __name__ == '__main__':

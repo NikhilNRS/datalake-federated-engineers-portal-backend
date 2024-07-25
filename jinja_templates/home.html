@@ -1,10 +1,6 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>{{ title }}</title>
-</head>
-<body>
+{% extends "base.html" %}
+{% block content %}
+  
 <p>Welcome {{ first_name }}</p>
 {% if user_has_no_login_links is false %}
 <p>You can log in as a user for the following teams:</p>
@@ -18,5 +14,6 @@
 <p>You are not assigned to any teams yet. Ask the DataLake team to add you to a team!</p>
 {% endif %}
 
-</body>
-</html>
+<p><a href="{{ logout_url }}">Logout</a></p>
+{% endblock %}
+
