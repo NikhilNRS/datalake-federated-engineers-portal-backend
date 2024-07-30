@@ -25,16 +25,9 @@ async def check_user_login(
     cognito_service = service_container.cognito_service()
 
     logger.info(f"App base URL: {app_base_url}")
-
     logger.info(f"Service container: {service_container}")
-
-    client_id = service_container.config.cognito_client_id()
     logger.info(f"Client ID: {client_id}")
-
-    redirect_url = f"{app_base_url}/"
     logger.info(f"Redirect URL: {redirect_url}")
-
-    cognito_service = service_container.cognito_service()
     logger.info(f"Cognito service: {cognito_service}")
 
     # load the session so that we can store the pkce secret
