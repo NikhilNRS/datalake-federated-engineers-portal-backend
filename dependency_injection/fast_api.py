@@ -1,4 +1,5 @@
 import urllib.parse
+import logging
 
 from fastapi import HTTPException
 from fastapi.security import SecurityScopes
@@ -14,11 +15,29 @@ async def check_user_login(
     request: Request,
     security_scopes: SecurityScopes,
 ):
-    app_base_url = f"{request.url.scheme}://{request.url.netloc}"
+    app_base_url = f"https://{request.url.netloc}"
     service_container: ServiceContainer = request.app.state.service_container
     client_id = service_container.config.cognito_client_id()
     redirect_url = f"{app_base_url}/"
     cognito_service = service_container.cognito_service()
+
+    # Configure logging
+    logging.basicConfig(level=logging.INFO)
+
+    app_base_url = f"{request.url.scheme}://{request.url.netloc}"
+    logging.info(f"App base URL: {app_base_url}")
+
+    service_container: ServiceContainer = request.app.state.service_container
+    logging.info(f"Service container: {service_container}")
+
+    client_id = service_container.config.cognito_client_id()
+    logging.info(f"Client ID: {client_id}")
+
+    redirect_url = f"{app_base_url}/"
+    logging.info(f"Redirect URL: {redirect_url}")
+
+    cognito_service = service_container.cognito_service()
+    logging.info(f"Cognito service: {cognito_service}")
 
     # load the session so that we can store the pkce secret
     await load_session(request)
