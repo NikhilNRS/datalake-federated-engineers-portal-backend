@@ -10,6 +10,9 @@ from starsessions import load_session
 from dependency_injection.container import ServiceContainer
 from models.enums import AuthorizeRequestResponseTypes
 
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 async def check_user_login(
     request: Request,
@@ -21,22 +24,18 @@ async def check_user_login(
     redirect_url = f"{app_base_url}/"
     cognito_service = service_container.cognito_service()
 
-    # Configure logging
-    logging.basicConfig(level=logging.INFO)
+    logger.info(f"App base URL: {app_base_url}")
 
-    app_base_url = f"{request.url.scheme}://{request.url.netloc}"
-    logging.info(f"App base URL: {app_base_url}")
-
-    logging.info(f"Service container: {service_container}")
+    logger.info(f"Service container: {service_container}")
 
     client_id = service_container.config.cognito_client_id()
-    logging.info(f"Client ID: {client_id}")
+    logger.info(f"Client ID: {client_id}")
 
     redirect_url = f"{app_base_url}/"
-    logging.info(f"Redirect URL: {redirect_url}")
+    logger.info(f"Redirect URL: {redirect_url}")
 
     cognito_service = service_container.cognito_service()
-    logging.info(f"Cognito service: {cognito_service}")
+    logger.info(f"Cognito service: {cognito_service}")
 
     # load the session so that we can store the pkce secret
     await load_session(request)
