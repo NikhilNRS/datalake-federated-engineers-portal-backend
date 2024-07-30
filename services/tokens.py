@@ -262,7 +262,7 @@ class AuthorizationCodeBackend(AuthenticationBackend):
 
         service_container = conn.app.state.service_container
         client_id = service_container.config.cognito_client_id()
-        app_base_url = f"{conn.url.scheme}://{conn.url.netloc}"
+        app_base_url = f"https://{conn.url.netloc}"
         redirect_url = f"{app_base_url}/"
 
         # If there is an authorization code, check if we used it before

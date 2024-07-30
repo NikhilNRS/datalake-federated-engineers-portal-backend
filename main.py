@@ -95,7 +95,7 @@ def get_favicon():
         Security(check_user_login, scopes=[])
     ])
 async def logout(request: Request):
-    app_base_url = f"{request.url.scheme}://{request.url.netloc}"
+    app_base_url = f"https://{request.url.netloc}"
     service_container = request.app.state.service_container
     cognito_service = service_container.cognito_service()
 
