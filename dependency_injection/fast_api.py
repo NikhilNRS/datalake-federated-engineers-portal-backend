@@ -27,7 +27,6 @@ async def check_user_login(
     app_base_url = f"{request.url.scheme}://{request.url.netloc}"
     logging.info(f"App base URL: {app_base_url}")
 
-    service_container: ServiceContainer = request.app.state.service_container
     logging.info(f"Service container: {service_container}")
 
     client_id = service_container.config.cognito_client_id()
