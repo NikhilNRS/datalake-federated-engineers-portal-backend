@@ -1,5 +1,7 @@
 import urllib.parse
 import logging
+import os
+from dotenv import load_dotenv
 
 from fastapi import HTTPException
 from fastapi.security import SecurityScopes
@@ -14,11 +16,22 @@ from models.enums import AuthorizeRequestResponseTypes
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Load environment variables from .env file
+load_dotenv()
+
 async def check_user_login(
     request: Request,
     security_scopes: SecurityScopes,
 ):
-    app_base_url = f"https://{request.url.netloc}"
+    # Get the environment variable
+    app_env = os.getenv('APP_ENV', 'local')
+    
+    # Conditionally set app_base_url based on the environment
+    if app_env == 'aws':
+        app_base_url = f"https://{request.url.netloc}"
+    else:
+        app_base_url = f"{request.url.scheme}://{request.url.netloc}"
+
     service_container: ServiceContainer = request.app.state.service_container
     client_id = service_container.config.cognito_client_id()
     redirect_url = f"{app_base_url}/"

@@ -295,8 +295,9 @@ class AuthorizationCodeBackend(AuthenticationBackend):
             # Use the cached tokens if we used the authorization code before
             parsed_response = cached_tokens
 
-        access_token = parsed_response[self.ACCESS_TOKEN_KEY]
-        id_token = parsed_response[self.ID_TOKEN_KEY]
+        if parsed_response == "200" and self.ACCESS_TOKEN_KEY in parsed_response and self.ID_TOKEN_KEY in parsed_response:
+            access_token = parsed_response[self.ACCESS_TOKEN_KEY]
+            id_token = parsed_response[self.ID_TOKEN_KEY]
 
         # Validate all the tokens before we use them, to prevent token forgery
         valid_id_token = self._token_verifier.is_valid_id_token(
