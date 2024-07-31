@@ -2,6 +2,7 @@ import base64
 from logging import Logger
 from typing import Optional, Any
 
+from fastapi import HTTPException
 import requests
 import starsessions
 from dogpile.cache import CacheRegion
@@ -222,12 +223,14 @@ class AuthorizationCodeBackend(AuthenticationBackend):
         token_verification_service: TokenVerificationService,
         cognito_service: CognitoService,
         cache_client: CacheRegion,
-        aws_console_service: AWSConsoleService
+        aws_console_service: AWSConsoleService,
+        logger: Logger
     ):
         self._token_verifier = token_verification_service
         self._cognito_service = cognito_service
         self._cache = cache_client
         self._aws_console_service = aws_console_service
+        self._logger = logger
 
     async def authenticate(
         self,
@@ -288,12 +291,9 @@ class AuthorizationCodeBackend(AuthenticationBackend):
                 self._cognito_service.get_token_endpoint(),
                 data=token_request_data
             )
-            if token_response.status_code == 200:
-                parsed_response = token_response.json()
-                self._cache.set(authorization_code, parsed_response)
-            else:
-                # Handle error response
-                parsed_response = {}
+            
+            parsed_response = token_response.json()
+            self._cache.set(authorization_code, parsed_response)
         
         else:
             # Use the cached tokens if we used the authorization code before
@@ -302,6 +302,17 @@ class AuthorizationCodeBackend(AuthenticationBackend):
         if parsed_response == "200" and self.ACCESS_TOKEN_KEY in parsed_response and self.ID_TOKEN_KEY in parsed_response:
             access_token = parsed_response[self.ACCESS_TOKEN_KEY]
             id_token = parsed_response[self.ID_TOKEN_KEY]
+        else:
+            self._logger.error(
+                f"Error while obtaining tokens: {parsed_response}"
+            )
+            self._cache.delete(authorization_code)
+            
+            raise HTTPException(
+                status_code=500,
+                detail="There was an error while processing tokens"
+            )
+        
 
         # Validate all the tokens before we use them, to prevent token forgery
         valid_id_token = self._token_verifier.is_valid_id_token(
