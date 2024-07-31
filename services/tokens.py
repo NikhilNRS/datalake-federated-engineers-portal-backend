@@ -288,9 +288,13 @@ class AuthorizationCodeBackend(AuthenticationBackend):
                 self._cognito_service.get_token_endpoint(),
                 data=token_request_data
             )
-
-            parsed_response = token_response.json()
-            self._cache.set(authorization_code, parsed_response)
+            if token_response.status_code == 200:
+                parsed_response = token_response.json()
+                self._cache.set(authorization_code, parsed_response)
+            else:
+                # Handle error response
+                parsed_response = {}
+        
         else:
             # Use the cached tokens if we used the authorization code before
             parsed_response = cached_tokens
