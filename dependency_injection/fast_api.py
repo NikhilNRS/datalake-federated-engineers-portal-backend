@@ -1,4 +1,6 @@
 import urllib.parse
+import logging
+from dotenv import load_dotenv
 
 from fastapi import HTTPException
 from fastapi.security import SecurityScopes
@@ -8,17 +10,34 @@ from starsessions import load_session
 
 from dependency_injection.container import ServiceContainer
 from models.enums import AuthorizeRequestResponseTypes
+from utils.urls import generate_app_base_url
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Load environment variables from .env file
+load_dotenv()
 
 
 async def check_user_login(
     request: Request,
     security_scopes: SecurityScopes,
 ):
-    app_base_url = f"{request.url.scheme}://{request.url.netloc}"
     service_container: ServiceContainer = request.app.state.service_container
+    # Get the environment variable
+    app_env = service_container.config.app_env()
+
+    # Conditionally set app_base_url based on the environment
+    app_base_url = generate_app_base_url(request, app_env)
+
     client_id = service_container.config.cognito_client_id()
     redirect_url = f"{app_base_url}/"
     cognito_service = service_container.cognito_service()
+
+    logger.debug(f"App base URL: {app_base_url}")
+    logger.debug(f"Client ID: {client_id}")
+    logger.debug(f"Redirect URL: {redirect_url}")
 
     # load the session so that we can store the pkce secret
     await load_session(request)

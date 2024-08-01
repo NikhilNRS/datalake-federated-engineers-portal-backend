@@ -12,6 +12,7 @@ from starsessions import SessionMiddleware, regenerate_session_id
 
 from dependency_injection.container import ServiceContainer
 from dependency_injection.fast_api import check_user_login
+from utils.urls import generate_app_base_url
 
 # Load environment variables from .env file
 load_dotenv()
@@ -95,10 +96,11 @@ def get_favicon():
         Security(check_user_login, scopes=[])
     ])
 async def logout(request: Request):
-    app_base_url = f"{request.url.scheme}://{request.url.netloc}"
     service_container = request.app.state.service_container
+    app_env = service_container.config.app_env()
     cognito_service = service_container.cognito_service()
 
+    app_base_url = generate_app_base_url(request, app_env)
     redirect_url = f"{app_base_url}/welcome"
 
     cognito_logout_url = cognito_service.get_logout_endpoint(

@@ -1,7 +1,9 @@
 import base64
 from logging import Logger
 from typing import Optional, Any
+from dotenv import load_dotenv
 
+from fastapi import HTTPException
 import requests
 import starsessions
 from dogpile.cache import CacheRegion
@@ -15,6 +17,10 @@ from models.enums import TokenRequestGrantTypes, TokenUseTypes
 from models.users import CognitoUser
 from services.aws_console import AWSConsoleService
 from services.cognito import CognitoService
+from utils.urls import generate_app_base_url
+
+# Load environment variables from .env file
+load_dotenv()
 
 
 class TokenVerificationService:
@@ -222,12 +228,14 @@ class AuthorizationCodeBackend(AuthenticationBackend):
         token_verification_service: TokenVerificationService,
         cognito_service: CognitoService,
         cache_client: CacheRegion,
-        aws_console_service: AWSConsoleService
+        aws_console_service: AWSConsoleService,
+        logger: Logger
     ):
         self._token_verifier = token_verification_service
         self._cognito_service = cognito_service
         self._cache = cache_client
         self._aws_console_service = aws_console_service
+        self._logger = logger
 
     async def authenticate(
         self,
@@ -262,7 +270,8 @@ class AuthorizationCodeBackend(AuthenticationBackend):
 
         service_container = conn.app.state.service_container
         client_id = service_container.config.cognito_client_id()
-        app_base_url = f"{conn.url.scheme}://{conn.url.netloc}"
+        app_env = service_container.config.app_env()
+        app_base_url = generate_app_base_url(conn, app_env)
         redirect_url = f"{app_base_url}/"
 
         # If there is an authorization code, check if we used it before
@@ -283,20 +292,34 @@ class AuthorizationCodeBackend(AuthenticationBackend):
                 self.REDIRECT_URI_PARAMETER: redirect_url,
                 self.CODE_VERIFIER_PARAMETER: code_verifier
             }
-
+            self._logger.debug(
+                f"Requesting tokens with data: {token_request_data}"
+            )
             token_response = requests.post(
                 self._cognito_service.get_token_endpoint(),
                 data=token_request_data
             )
-
             parsed_response = token_response.json()
             self._cache.set(authorization_code, parsed_response)
+
         else:
             # Use the cached tokens if we used the authorization code before
             parsed_response = cached_tokens
 
-        access_token = parsed_response[self.ACCESS_TOKEN_KEY]
-        id_token = parsed_response[self.ID_TOKEN_KEY]
+        if token_response.status_code == 200 and \
+           self.ACCESS_TOKEN_KEY in parsed_response \
+           and self.ID_TOKEN_KEY in parsed_response:
+            access_token = parsed_response[self.ACCESS_TOKEN_KEY]
+            id_token = parsed_response[self.ID_TOKEN_KEY]
+        else:
+            self._logger.error(
+                f"Error while obtaining tokens: {parsed_response}"
+            )
+            self._cache.delete(authorization_code)
+            raise HTTPException(
+                status_code=500,
+                detail="There was an error while processing tokens"
+            )
 
         # Validate all the tokens before we use them, to prevent token forgery
         valid_id_token = self._token_verifier.is_valid_id_token(

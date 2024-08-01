@@ -209,5 +209,6 @@ class ServiceContainer(containers.DeclarativeContainer):
         token_verification_service,
         cognito_service,
         dogpile_cache_region,
-        aws_console_service
+        aws_console_service,
+        logger
     )
