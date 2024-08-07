@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.7 - 07-08-2024
+
+- Replace PyJWT git dependency with regular pypi based one
+
 ## 0.1.6 - 01-08-2024
 
 - Fix various linting and mypy errors

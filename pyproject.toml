@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "federated-engineers-portal-backend"
-version = "0.1.6"
+version = "0.1.7"
 description = "A login portal for federated engineers to do their work"
 authors = ["Ben van der Harg <ben.j.van.der.harg@postnl.nl>"]
 readme = "README.md"
