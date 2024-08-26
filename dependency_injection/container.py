@@ -160,9 +160,8 @@ class ServiceContainer(containers.DeclarativeContainer):
                 logger
             )
     elif config.app_env() == "dev":
-        # Dev specific configuration
         config.cache_endpoint.from_value(None)
-        config.cache_connection_url.from_env("DEV_CACHE_CONNECTION_URL")  # Use a different environment variable for dev, if needed
+        config.cache_connection_url.from_env("DEV_CACHE_CONNECTION_URL")
     else:
         raise ValueError("Only 'aws', 'local', and 'dev' are valid APP_ENV values!")
 

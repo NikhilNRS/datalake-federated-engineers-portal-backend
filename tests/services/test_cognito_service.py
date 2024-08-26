@@ -18,10 +18,8 @@ class TestCognitoService(unittest.TestCase):
 
         # Environment variables are set in conftest.py, so we can use them here
 
-        # Initialize ServiceContainer
         self.container = ServiceContainer()
 
-        # Create real boto3 clients with stubbers
         boto3_session = Session(region_name=os.environ["AWS_REGION"])
 
         cognito_idp_client = boto3_session.client("cognito-idp")
@@ -32,19 +30,15 @@ class TestCognitoService(unittest.TestCase):
         self.cognito_identity_stubber = Stubber(cognito_identity_client)
         self.cognito_identity_stubber.activate()
 
-        # Mock the cache region using an in-memory backend
         mock_cache = make_region().configure('dogpile.cache.memory')
 
-        # Mock the logger
         mock_logger = Mock()
 
-        # Override the providers in the container
         self.container.aws_cognito_client.override(providers.Object(cognito_idp_client))
         self.container.aws_cognito_identity_client.override(providers.Object(cognito_identity_client))
         self.container.dogpile_cache_region.override(providers.Object(mock_cache))
         self.container.logger.override(providers.Object(mock_logger))
 
-        # Use the container to create the CognitoService instance
         self.cognito_service = self.container.cognito_service()
 
     def tearDown(self):
@@ -68,7 +62,6 @@ class TestCognitoService(unittest.TestCase):
         """Test the get_json_web_key method of CognitoService."""
         key_id = "example-key-id"
 
-        # Mocking the cache to return None initially, simulating a cache miss
         self.cognito_service._cache_client.get = Mock(return_value=None)
         self.cognito_service._refresh_user_pool_json_web_keys = Mock()
 
@@ -105,7 +98,6 @@ class TestCognitoService(unittest.TestCase):
         # Mocking the cache to return None initially
         self.cognito_service._cache_client.get = Mock(return_value=None)
 
-        # Stubbing the AWS response
         self.cognito_idp_stubber.add_response(
             'describe_user_pool_client',
             {'UserPoolClient': {'ClientId': client_id}},
@@ -119,7 +111,6 @@ class TestCognitoService(unittest.TestCase):
         """Test the get_cognito_identity_id method of CognitoService."""
         id_token = "example-id-token"
 
-        # Stubbing the AWS response
         self.cognito_identity_stubber.add_response(
             'get_id',
             {'IdentityId': 'eu-test-1:example-id'},
@@ -134,7 +125,6 @@ class TestCognitoService(unittest.TestCase):
         cognito_identity_id = "example-identity-id"
         id_token = "example-id-token"
 
-        # Stubbing the AWS response
         self.cognito_identity_stubber.add_response(
             'get_open_id_token',
             {'Token': 'example-open-id-token'},
@@ -148,7 +138,6 @@ class TestCognitoService(unittest.TestCase):
         """Test the get_roles_by_groups method of CognitoService."""
         group_names = ['group1', 'group2']
 
-        # Correct the stubbed response to match AWS expectations
         self.cognito_idp_stubber.add_response(
             'get_group',
             {'Group': {'GroupName': 'group1', 'RoleArn': 'arn:aws:iam::123456789012:role/role-arn-1'}},
