@@ -1,6 +1,6 @@
 # yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
-name: Run mypy
-run-name: Run mypy by @${{ github.actor }}
+name: Run mypy and pytest
+run-name: Run mypy and pytest by @${{ github.actor }}
 
 on: workflow_call
 
@@ -19,10 +19,14 @@ jobs:
         with:
           python-version: 3.11
 
-      - name: install poetry and dependencies
-        run: |
-          pipx install poetry
-          poetry install
+      - name: Install Poetry
+        run: pipx install poetry
+
+      - name: Install dependencies
+        run: poetry install
 
       - name: Run mypy
         run: poetry run mypy .
+      
+      - name: Run pytest
+        run: poetry run pytest

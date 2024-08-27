@@ -8,7 +8,7 @@ on:
 jobs:
   run-mypy-and-pytest:
     name: Run mypy
-    uses: ./.github/workflows/reusable-run-mypy.yaml
+    uses: ./.github/workflows/reusable-test-poetry-package.yaml
     secrets: inherit
 
   get-files-with-changes:
@@ -33,4 +33,4 @@ jobs:
       environment: development
       stage: dev
     secrets: inherit
-   
+
