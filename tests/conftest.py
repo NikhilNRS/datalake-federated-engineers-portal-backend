@@ -1,5 +1,3 @@
-# tests/conftest.py
-
 import os
 
 def pytest_configure():
