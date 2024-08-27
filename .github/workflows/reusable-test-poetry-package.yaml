@@ -19,11 +19,16 @@ jobs:
         with:
           python-version: 3.11
 
-      - name: Install Poetry
-        run: pipx install poetry
+      - name: Install poetry and dependencies
+        run: |
+          pipx install poetry
+          poetry install
+          
+      - name: Set up Poetry environment
+        run: poetry env use $(which python)
 
-      - name: Install dependencies
-        run: poetry install
+      - name: Set PYTHONPATH
+        run: echo "PYTHONPATH=$PYTHONPATH:$(pwd)" >> $GITHUB_ENV
 
       - name: Run mypy
         run: poetry run mypy .
