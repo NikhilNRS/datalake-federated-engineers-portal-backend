@@ -1,6 +1,6 @@
 # yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
-name: Run mypy
-run-name: Run mypy by @${{ github.actor }}
+name: Run mypy and pytest
+run-name: Run mypy and pytest by @${{ github.actor }}
 
 on: workflow_call
 
@@ -17,12 +17,21 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: 3.11
+          python-version: 3.12
 
-      - name: install poetry and dependencies
+      - name: Install poetry and dependencies
         run: |
           pipx install poetry
           poetry install
+          
+      - name: Set up Poetry environment
+        run: poetry env use $(which python)
+
+      - name: Set PYTHONPATH
+        run: echo "PYTHONPATH=$PYTHONPATH:$(pwd)" >> $GITHUB_ENV
 
       - name: Run mypy
         run: poetry run mypy .
+      
+      - name: Run pytest
+        run: poetry run pytest

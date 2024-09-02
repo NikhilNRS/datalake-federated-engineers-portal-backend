@@ -159,8 +159,11 @@ class ServiceContainer(containers.DeclarativeContainer):
                 aws_request_signer,
                 logger
             )
+    elif config.app_env() == "ci":
+        config.cache_endpoint.from_value(None)
+        config.cache_connection_url.from_env("DEV_CACHE_CONNECTION_URL")
     else:
-        raise ValueError("Only 'aws' and 'local' are valid APP_ENV values!")
+        raise ValueError("Only 'aws', 'local', and 'ci' are valid APP_ENV values!")
 
     dogpile_cache_region = providers.Selector(
         config.app_env,
@@ -170,6 +173,9 @@ class ServiceContainer(containers.DeclarativeContainer):
         aws=providers.Resource(DogpileCacheProdResource).add_args(
             config.cache_endpoint(),
             cache_credential_provider
+        ),
+        ci=providers.Resource(DogpileCacheDevResource).add_args(
+            config.cache_connection_url()
         )
     )
 

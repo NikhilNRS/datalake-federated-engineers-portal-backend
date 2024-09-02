@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.8 - 30-08-2024
+
+- DLAK-2468 - Add unit tests for CognitoService class and configure CI/CD pipeline for automated testing using GitHub Actions.
+
 ## 0.1.7 - 07-08-2024
 
 - Replace PyJWT git dependency with regular pypi based one
