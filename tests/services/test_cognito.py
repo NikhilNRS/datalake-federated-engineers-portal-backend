@@ -39,8 +39,8 @@ def cognito_identity_client(boto3_session):
 @pytest.fixture
 def cognito_service(service_container, cognito_idp_client, cognito_identity_client):
     """Fixture to create a CognitoService instance with stubbed clients."""
-    client_idp, stubber_idp = cognito_idp_client
-    client_identity, stubber_identity = cognito_identity_client
+    client_idp, _ = cognito_idp_client
+    client_identity, _ = cognito_identity_client
 
     mock_cache = make_region().configure('dogpile.cache.memory')
     mock_logger = Mock()
@@ -78,7 +78,8 @@ def test_get_json_web_key(cognito_service, mock_cache):
     cognito_service._cache_client.get = Mock(return_value=None)
     cognito_service._refresh_user_pool_json_web_keys = Mock()
 
-    result = cognito_service.get_json_web_key(key_id)
+    cognito_service.get_json_web_key(key_id)
+    
     cognito_service._cache_client.get.assert_called_with(f"kid_{key_id}")
     cognito_service._refresh_user_pool_json_web_keys.assert_called_once()
 
