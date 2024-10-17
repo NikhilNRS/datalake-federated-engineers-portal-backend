@@ -22,9 +22,22 @@ jobs:
     uses: ./.github/workflows/reusable-check-package-version-bumping.yaml
     secrets: inherit
     
+  deploy-infra-to-dev:
+    name: Deploy Cognito Infrastructure to Development
+    needs: [get-files-with-changes, run-mypy-and-pytest, check-if-application-version-is-bumped]
+    if: needs.get-files-with-changes.outputs.changed-files != '[]' &&
+      !failure() &&
+      !cancelled()
+    uses: ./.github/workflows/reusable-deploy-infra.yaml
+    with:
+      package-path: infra/federated-engineers-portal
+      environment: development
+      stage: dev
+    secrets: inherit
+
   deploy-docker-image-to-dev:
     name: Deploy Docker Image to Development
-    needs: [get-files-with-changes, run-mypy-and-pytest, check-if-application-version-is-bumped]
+    needs: [get-files-with-changes, run-mypy-and-pytest, check-if-application-version-is-bumped, deploy-infra-to-dev]
     if: needs.get-files-with-changes.outputs.changed-files != '[]' &&
       !failure() &&
       !cancelled()
@@ -33,4 +46,3 @@ jobs:
       environment: development
       stage: dev
     secrets: inherit
-
