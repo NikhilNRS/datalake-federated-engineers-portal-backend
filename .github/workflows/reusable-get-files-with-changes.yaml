@@ -20,15 +20,15 @@ jobs:
         with:
           filters: |
             dependency_injection:
-              - 'dependency_injection/*.py'
+              - 'src/dependency_injection/*.py'
             jinja_templates:
-              - 'jinja_templates/*.html'
+              - 'src/jinja_templates/*.html'
             models:
-              - 'models/*.py'
+              - 'src/models/*.py'
             services:
-              - 'services/*.py'
+              - 'src/services/*.py'
             root:
-              - 'docker-compose.yml'
-              - 'Dockerfile'
-              - 'main.py'
-              - 'pyproject.toml'
+              - 'src/docker-compose.yml'
+              - 'src/Dockerfile'
+              - 'src/main.py'
+              - 'src/pyproject.toml'
