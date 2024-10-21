@@ -2,7 +2,13 @@
 name: Run mypy and pytest
 run-name: Run mypy and pytest by @${{ github.actor }}
 
-on: workflow_call
+on: 
+  workflow_call:
+    inputs:
+      working-directory:
+        description: 'Directory where the application is located'
+        required: false
+        default: '.'
 
 jobs:
   run-mypy-and-pytest:
@@ -22,16 +28,23 @@ jobs:
       - name: Install poetry and dependencies
         run: |
           pipx install poetry
+          cd ${{ inputs.working-directory }}  # Ensure poetry is installed in the correct directory
           poetry install
           
       - name: Set up Poetry environment
-        run: poetry env use $(which python)
+        run: |
+          cd ${{ inputs.working-directory }}  # Use the correct directory
+          poetry env use $(which python)
 
       - name: Set PYTHONPATH
         run: echo "PYTHONPATH=$PYTHONPATH:$(pwd)" >> $GITHUB_ENV
 
       - name: Run mypy
-        run: poetry run mypy .
+        run: |
+          cd ${{ inputs.working-directory }}  # Run mypy from the correct directory
+          poetry run mypy .
       
       - name: Run pytest
-        run: poetry run pytest
+        run: |
+          cd ${{ inputs.working-directory }}  # Run pytest from the correct directory
+          poetry run pytest

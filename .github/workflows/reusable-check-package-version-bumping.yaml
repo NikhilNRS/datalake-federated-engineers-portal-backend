@@ -2,7 +2,12 @@
 name: Check if a package version is bumped
 
 on:
-  workflow_call
+  workflow_call:
+    inputs:
+      working-directory:
+        description: 'Directory where the application is located'
+        required: false
+        default: '.'
 
 jobs:
   check-version:
@@ -12,6 +17,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ github.head_ref }}
+          path: ${{ inputs.working-directory }}  # Checkout into the correct directory
 
       - name: Checkout main branch
         uses: actions/checkout@v4
@@ -23,10 +29,10 @@ jobs:
         id: compare_versions
         run: |
           # Extract version from current branch
-          current_version=$(grep "^version" src/pyproject.toml | head -n 1 | cut -d '"' -f 2)
+          current_version=$(grep "^version" ${{ inputs.working-directory }}/pyproject.toml | head -n 1 | cut -d '"' -f 2)
           
           # Extract version from main branch
-          main_version=$(grep "^version" main_branch/src/pyproject.toml | head -n 1 | cut -d '"' -f 2)
+          main_version=$(grep "^version" main_branch/${{ inputs.working-directory }}/pyproject.toml | head -n 1 | cut -d '"' -f 2)
 
           echo "Current branch version: $current_version"
           echo "Main branch version: $main_version"

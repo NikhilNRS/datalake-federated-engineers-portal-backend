@@ -7,21 +7,25 @@ on:
 
 jobs:
   run-mypy-and-pytest:
-    name: Run mypy
+    name: Run mypy and pytest
     uses: ./.github/workflows/reusable-test-poetry-package.yaml
     with:
-      working-directory: src
+      working-directory: src  # Set working directory for the test workflow
     secrets: inherit
 
   get-files-with-changes:
     name: Get Files with changes
     uses: ./.github/workflows/reusable-get-files-with-changes.yaml
+    with:
+      working-directory: src  # Set working directory for detecting file changes
 
   check-if-application-version-is-bumped:
-    name: Check if the application files have changed, version is bumped
+    name: Check if the application files have changed and version is bumped
     needs: get-files-with-changes
     if: needs.get-files-with-changes.outputs.changed-files != '[]'
     uses: ./.github/workflows/reusable-check-package-version-bumping.yaml
+    with:
+      working-directory: src  # Set working directory for the version check
     secrets: inherit
     
   deploy-docker-image-to-dev:
@@ -34,5 +38,5 @@ jobs:
     with:
       environment: development
       stage: dev
-      working-directory: src
+      working-directory: src  # Set working directory for Docker build
     secrets: inherit

@@ -4,6 +4,10 @@ name: Build and deploy docker image to ECR
 on:
   workflow_call:
     inputs:
+      working-directory:
+        description: 'Directory where the application is located'
+        required: false
+        default: '.'
       environment:
         description: Name of the environment
         required: true
@@ -24,9 +28,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          path: ${{ inputs.working-directory }}  # Checkout into the correct directory
       
       - name: Get application version
-        run: echo "application_version=$(grep "^version" pyproject.toml | head -n 1 | cut -d '"' -f 2)" >> $GITHUB_ENV
+        run: |
+          cd ${{ inputs.working-directory }}  # Ensure we are in the correct directory
+          echo "application_version=$(grep "^version" pyproject.toml | head -n 1 | cut -d '"' -f 2)" >> $GITHUB_ENV
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -52,9 +59,9 @@ jobs:
           mask-password: 'true'
       
       - name: Build Docker image
-        run: docker build . -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_DEFAULT_REGION }}.amazonaws.com/federated-engineers-portal-backend-${{ inputs.stage }}:$application_version
-
+        run: |
+          cd ${{ inputs.working-directory }}  # Ensure we are in the correct directory
+          docker build . -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_DEFAULT_REGION }}.amazonaws.com/federated-engineers-portal-backend-${{ inputs.stage }}:$application_version
 
       - name: Upload Docker Image
         run: docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_DEFAULT_REGION }}.amazonaws.com/federated-engineers-portal-backend-${{ inputs.stage }}:$application_version
-
