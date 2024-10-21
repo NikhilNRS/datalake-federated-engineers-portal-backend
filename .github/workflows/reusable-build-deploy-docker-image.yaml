@@ -29,11 +29,16 @@ jobs:
         with:
           fetch-depth: 0
           path: ${{ inputs.working-directory }}
-      
+
       - name: Get application version
         run: |
           cd ${{ inputs.working-directory }}
-          echo "application_version=$(grep "^version" pyproject.toml | head -n 1 | cut -d '"' -f 2)" >> $GITHUB_ENV
+          application_version=$(grep "^version" pyproject.toml | head -n 1 | cut -d '"' -f 2)
+          if [ -z "$application_version" ]; then
+            echo "::error ::Application version could not be found in pyproject.toml"
+            exit 1
+          fi
+          echo "application_version=$application_version" >> $GITHUB_ENV
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -57,7 +62,7 @@ jobs:
         uses: aws-actions/amazon-ecr-login@v1
         with:
           mask-password: 'true'
-      
+          
       - name: Build Docker image
         run: |
           cd ${{ inputs.working-directory }}
