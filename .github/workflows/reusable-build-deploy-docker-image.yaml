@@ -30,9 +30,16 @@ jobs:
           fetch-depth: 0
           path: ${{ inputs.working-directory }}
 
+      - name: List files in current working directory
+        run: |
+          cd ${{ inputs.working-directory }}
+          ls -la
+
       - name: Get application version
         run: |
           cd ${{ inputs.working-directory }}
+          echo "Listing files before extracting version"
+          ls -la  # Add ls to verify the pyproject.toml file location
           application_version=$(grep "^version" pyproject.toml | head -n 1 | cut -d '"' -f 2)
           if [ -z "$application_version" ]; then
             echo "::error ::Application version could not be found in pyproject.toml"
@@ -62,7 +69,7 @@ jobs:
         uses: aws-actions/amazon-ecr-login@v1
         with:
           mask-password: 'true'
-          
+
       - name: Build Docker image
         run: |
           cd ${{ inputs.working-directory }}
