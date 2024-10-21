@@ -6,7 +6,7 @@ on:
       working-directory:
         description: 'Directory where the application is located'
         required: false
-        default: '.'  # Default to root directory
+        default: '.'
         type: string
 
 jobs:
@@ -16,19 +16,13 @@ jobs:
       - name: Checkout current branch
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Ensure full repo history is fetched
+          fetch-depth: 0
 
       - name: Checkout main branch
         uses: actions/checkout@v4
         with:
           ref: main
-          path: main_branch  # Main branch will be checked out to a subfolder
-
-      - name: List files in current branch
-        run: ls -la src/  # List files in the current branch
-
-      - name: List files in main branch
-        run: ls -la main_branch/  # List files in the main branch
+          path: main_branch 
 
       - name: Compare and set versions
         id: compare_versions

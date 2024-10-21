@@ -7,7 +7,7 @@ on:
         description: 'Directory where the application is located'
         required: false
         default: '.'
-        type: string  # Add the type field
+        type: string
       environment:
         description: Name of the environment
         required: true
