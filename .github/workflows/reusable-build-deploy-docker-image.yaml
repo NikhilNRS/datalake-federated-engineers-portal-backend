@@ -30,16 +30,16 @@ jobs:
           fetch-depth: 0
           path: ${{ inputs.working-directory }}
 
-      - name: List files in current working directory
+      - name: List files in working directory
         run: |
           cd ${{ inputs.working-directory }}
-          ls -la
+          ls -la  # Check directory contents
 
       - name: Get application version
         run: |
-          cd ${{ inputs.working-directory }}
-          echo "Listing files before extracting version"
-          ls -la  # Add ls to verify the pyproject.toml file location
+          cd ${{ inputs.working-directory }}/src  # Add this second cd to go into the inner src
+          echo "Listing files in src/src"
+          ls -la
           application_version=$(grep "^version" pyproject.toml | head -n 1 | cut -d '"' -f 2)
           if [ -z "$application_version" ]; then
             echo "::error ::Application version could not be found in pyproject.toml"
@@ -59,9 +59,9 @@ jobs:
       - name: Configure AWS Credentials for ECR
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
-          aws-session-token: ${{ env.AWS_SESSION_TOKEN }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
           aws-region: ${{ env.AWS_DEFAULT_REGION }}
 
       - name: Log in to Amazon ECR
@@ -72,7 +72,7 @@ jobs:
 
       - name: Build Docker image
         run: |
-          cd ${{ inputs.working-directory }}
+          cd ${{ inputs.working-directory }}/src  # Ensure Docker build runs in the correct directory
           docker build . -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_DEFAULT_REGION }}.amazonaws.com/federated-engineers-portal-backend-${{ inputs.stage }}:$application_version
 
       - name: Upload Docker Image
