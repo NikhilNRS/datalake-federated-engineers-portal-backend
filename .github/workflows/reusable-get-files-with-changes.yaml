@@ -7,6 +7,7 @@ on:
         description: 'Directory where the application is located'
         required: false
         default: '.'
+        type: string  # Add the type field
     outputs:
       changed-files:
         description: Files with changes
@@ -21,16 +22,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          path: ${{ inputs.working-directory }}  # Checkout into the correct directory
+          path: ${{ inputs.working-directory }}
           
       - uses: dorny/paths-filter@0bc4621a3135347011ad047f9ecf449bf72ce2bd
         id: filters
         with:
           filters: |
             dependency_injection:
-              - '${{ inputs.working-directory }}/dependency_injection/*.py'  # Respect the working directory
+              - '${{ inputs.working-directory }}/dependency_injection/*.py'
             jinja_templates:
-              - '${{ inputs.working-directory }}/jinja_templates/*.html'  # Respect the working directory
+              - '${{ inputs.working-directory }}/jinja_templates/*.html'
             models:
               - '${{ inputs.working-directory }}/models/*.py'
             services:
