@@ -24,6 +24,13 @@ jobs:
         with:
           ref: main
           path: main_branch
+      
+      - name: List files in current branch
+        run: ls -la src/
+
+      - name: List files in main branch
+        run: ls -la main_branch/
+
 
       - name: Compare and set versions
         id: compare_versions
