@@ -32,5 +32,3 @@ jobs:
               - 'Dockerfile'
               - 'main.py'
               - 'pyproject.toml'
-            infra_federated_engineers_portal:
-              - 'infra/federated-engineers-portal/**'
