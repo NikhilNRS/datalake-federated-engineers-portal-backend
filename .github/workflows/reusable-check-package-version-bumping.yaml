@@ -6,8 +6,8 @@ on:
       working-directory:
         description: 'Directory where the application is located'
         required: false
-        default: '.'
-        type: string  # Add the type field
+        default: '.'  # Default to root directory
+        type: string
 
 jobs:
   check-version:
@@ -16,26 +16,24 @@ jobs:
       - name: Checkout current branch
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.head_ref }}
-          path: ${{ inputs.working-directory }}
+          fetch-depth: 0  # Ensure full repo history is fetched
 
       - name: Checkout main branch
         uses: actions/checkout@v4
         with:
           ref: main
-          path: main_branch
-      
+          path: main_branch  # Main branch will be checked out to a subfolder
+
       - name: List files in current branch
-        run: ls -la src/
+        run: ls -la src/  # List files in the current branch
 
       - name: List files in main branch
-        run: ls -la main_branch/
-
+        run: ls -la main_branch/  # List files in the main branch
 
       - name: Compare and set versions
         id: compare_versions
         run: |
-          # Ensure pyproject.toml exists in both the current and main branch
+          # Ensure pyproject.toml exists in the current branch under src/
           if [ ! -f "src/pyproject.toml" ]; then
             echo "::error ::src/pyproject.toml file not found in the current branch"
             exit 1
@@ -71,4 +69,3 @@ jobs:
             echo "::notice ::Version $current_version is greater than $main_version"
             exit 0
           fi
-
