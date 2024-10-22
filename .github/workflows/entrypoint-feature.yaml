@@ -57,6 +57,12 @@ jobs:
           path: ~/.npm
           key: npm-cache-fde-backend-${{ hashFiles('**/package-lock.json') }}
           restore-keys: npm-cache-fde-backend-
+      
+      - name: Authenticate with Artifactory NPM Virtual
+        uses: Postnl-Production/lpe-private-actions/lpe-jfrog-npm-auth@v5
+        with:
+          npm-repo-name: postnl-data-lake-npm-dev-virtual
+          oidc: true
 
       - name: Install Node.js modules and dependencies
         run: npm ci
