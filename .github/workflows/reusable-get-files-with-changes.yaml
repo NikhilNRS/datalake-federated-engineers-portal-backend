@@ -41,3 +41,5 @@ jobs:
               - '${{ inputs.working-directory }}/Dockerfile'
               - '${{ inputs.working-directory }}/main.py'
               - '${{ inputs.working-directory }}/pyproject.toml'
+            infra_federated_engineers_portal:
+              - 'infra/federated-engineers-portal/**'
