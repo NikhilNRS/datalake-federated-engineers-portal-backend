@@ -1,0 +1,38 @@
+{
+  "dev": {
+    "AppRunnerURL": "https://fsn67bp2ws.eu-west-1.awsapprunner.com/",
+    "athenaOutputBucketArn": "arn:aws:s3:::postnl-dl-dev-shared-athena-output-locations",
+    "ecr_image_tag": "0.1.6",
+    "groups": [
+      "TESTMAINTAINER",
+      "TESTNONMAINTAINER"
+    ]
+  },
+  "tst": {
+    "AppRunnerURL": "https://fks6sdgamf.eu-west-1.awsapprunner.com/",
+    "athenaOutputBucketArn": "arn:aws:s3:::postnl-dl-tst-shared-athena-output-locations",
+    "ecr_image_tag": "0.1.6",
+    "groups": [
+      "LS",
+      "CBS"
+    ]
+  },
+  "acc": {
+    "AppRunnerURL": "https://ax32ksh4my.eu-west-1.awsapprunner.com/",
+    "athenaOutputBucketArn": "arn:aws:s3:::postnl-dl-acc-shared-athena-output-locations",
+    "ecr_image_tag": "0.1.6",
+    "groups": [
+      "LS",
+      "CBS"
+    ]
+  },
+  "prd": {
+    "AppRunnerURL": "https://am9xspzvca.eu-west-1.awsapprunner.com/",
+    "athenaOutputBucketArn": "arn:aws:s3:::postnl-dl-prd-shared-athena-output-locations",
+    "ecr_image_tag": "0.1.6",
+    "groups": [
+      "LS",
+      "CBS"
+    ]
+  }
+}
