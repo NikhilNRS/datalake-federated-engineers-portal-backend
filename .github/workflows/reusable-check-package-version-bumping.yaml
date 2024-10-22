@@ -1,13 +1,8 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
 name: Check if a package version is bumped
 
 on:
-  workflow_call:
-    inputs:
-      working-directory:
-        description: 'Directory where the application is located'
-        required: false
-        default: '.'
-        type: string
+  workflow_call
 
 jobs:
   check-version:
@@ -16,50 +11,36 @@ jobs:
       - name: Checkout current branch
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          ref: ${{ github.head_ref }}
 
       - name: Checkout main branch
         uses: actions/checkout@v4
         with:
           ref: main
-          path: main_branch 
+          path: main_branch
 
       - name: Compare and set versions
         id: compare_versions
         run: |
-          # Ensure pyproject.toml exists in the current branch under src/
-          if [ ! -f "src/pyproject.toml" ]; then
-            echo "::error ::src/pyproject.toml file not found in the current branch"
-            exit 1
-          fi
-
-          # Check if pyproject.toml exists in the main branch under src/
-          if [ ! -f "main_branch/src/pyproject.toml" ]; then
-            # Fall back to main branch pyproject.toml at root level if it doesn't exist in src/
-            if [ -f "main_branch/pyproject.toml" ]; then
-              echo "::warning ::main_branch/src/pyproject.toml not found, falling back to main_branch/pyproject.toml at root"
-              main_version=$(grep "^version" main_branch/pyproject.toml | head -n 1 | cut -d '"' -f 2)
-            else
-              echo "::error ::Neither src/pyproject.toml nor root-level pyproject.toml found in main branch"
-              exit 1
-            fi
-          else
-            main_version=$(grep "^version" main_branch/src/pyproject.toml | head -n 1 | cut -d '"' -f 2)
-          fi
-
-          # Extract version from the current branch
-          current_version=$(grep "^version" src/pyproject.toml | head -n 1 | cut -d '"' -f 2)
+          # Extract version from current branch
+          current_version=$(grep "^version" pyproject.toml | head -n 1 | cut -d '"' -f 2)
+          
+          # Extract version from main branch
+          main_version=$(grep "^version" main_branch/pyproject.toml | head -n 1 | cut -d '"' -f 2)
 
           echo "Current branch version: $current_version"
           echo "Main branch version: $main_version"
 
-          if [ "$current_version" = "$main_version" ]; then
-            echo "::error ::Version $current_version is equal to $main_version"
-            exit 1
-          elif [ "$current_version" \< "$main_version" ]; then
-            echo "::error ::Version $current_version is less than $main_version"
-            exit 1
+          if [ "$current_version" = "$main_version" ];
+          then
+              echo "::error ::Version $current_version is equal to $main_version"
+              exit 1
+          elif [ "$current_version" \< "$main_version" ];
+              then
+                  echo "::error ::Version $current_version is less than $main_version"
+                  exit 1
           else
-            echo "::notice ::Version $current_version is greater than $main_version"
-            exit 0
+              echo "::notice ::Version $current_version is greater than $main_version"
+              exit 0
           fi
+          

@@ -1,13 +1,8 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
 name: Run mypy and pytest
+run-name: Run mypy and pytest by @${{ github.actor }}
 
-on: 
-  workflow_call:
-    inputs:
-      working-directory:
-        description: 'Directory where the application is located'
-        required: false
-        default: '.'
-        type: string
+on: workflow_call
 
 jobs:
   run-mypy-and-pytest:
@@ -27,23 +22,16 @@ jobs:
       - name: Install poetry and dependencies
         run: |
           pipx install poetry
-          cd ${{ inputs.working-directory }}
           poetry install
           
       - name: Set up Poetry environment
-        run: |
-          cd ${{ inputs.working-directory }}
-          poetry env use $(which python)
+        run: poetry env use $(which python)
 
       - name: Set PYTHONPATH
         run: echo "PYTHONPATH=$PYTHONPATH:$(pwd)" >> $GITHUB_ENV
 
       - name: Run mypy
-        run: |
-          cd ${{ inputs.working-directory }}
-          poetry run mypy .
+        run: poetry run mypy .
       
       - name: Run pytest
-        run: |
-          cd ${{ inputs.working-directory }}
-          poetry run pytest
+        run: poetry run pytest

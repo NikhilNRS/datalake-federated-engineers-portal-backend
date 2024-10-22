@@ -37,14 +37,14 @@ class SecretsService:
         """
         return self._get_secret_response(secret_name=secret_name)
 
-    def get_json_secret(self, secret_name: str) -> dict[str, Any]: 
+    def get_json_secret(self, secret_name: str) -> dict[str, Any]:
         """Retrieves a json secret from secrets manager
 
         :param secret_name: name of the secret to retrieve
         :return: dictionary containing the parsed json values
         """
         secret = self._get_secret_response(secret_name)
-        return json.loads(secret) if secret else None # type: ignore
+        return json.loads(secret) if secret else None
 
     def _get_secret_response(self, secret_name: str) -> str | None:
         secret_response: GetSecretValueResponseTypeDef | None = None

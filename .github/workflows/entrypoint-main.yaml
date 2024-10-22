@@ -9,9 +9,7 @@ jobs:
   get-files-with-changes:
     name: Get Files with changes
     uses: ./.github/workflows/reusable-get-files-with-changes.yaml
-    with:
-      working-directory: src
-
+    
   deploy-docker-image-to-tst:
     name: Deploy Docker Image to Test
     needs: [get-files-with-changes]
@@ -22,8 +20,8 @@ jobs:
     with:
       environment: test
       stage: tst
-      working-directory: src
     secrets: inherit
+
 
   deploy-docker-image-to-acc:
     name: Deploy Docker Image to Acceptance
@@ -35,8 +33,8 @@ jobs:
     with:
       environment: acceptance
       stage: acc
-      working-directory: src
     secrets: inherit
+
 
   deploy-docker-image-to-prd:
     name: Deploy Docker Image to Production
@@ -48,5 +46,6 @@ jobs:
     with:
       environment: production
       stage: prd
-      working-directory: src
     secrets: inherit
+
+    
