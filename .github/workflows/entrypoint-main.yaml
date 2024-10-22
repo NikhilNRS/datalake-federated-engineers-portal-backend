@@ -12,41 +12,35 @@ jobs:
     with:
       working-directory: src
 
-  deploy-docker-image-to-tst:
-    name: Deploy Docker Image to Test
-    needs: [get-files-with-changes]
-    if: needs.get-files-with-changes.outputs.changed-files != '[]' &&
-      !failure() &&
-      !cancelled()
-    uses: ./.github/workflows/reusable-build-deploy-docker-image.yaml
+  deploy-infra-to-tst:
+    name: Deploy Cognito Infrastructure to Test
+    needs: get-files-with-changes
+    if: needs.get-files-with-changes.outputs.changed-files != '[]' && !failure() && !cancelled()
+    uses: ./.github/workflows/reusable-deploy-infra.yaml
     with:
+      package-path: infra/federated-engineers-portal
       environment: test
       stage: tst
-      working-directory: src
     secrets: inherit
 
-  deploy-docker-image-to-acc:
-    name: Deploy Docker Image to Acceptance
-    needs: [get-files-with-changes, deploy-docker-image-to-tst]
-    if: needs.get-files-with-changes.outputs.changed-files != '[]' &&
-      !failure() &&
-      !cancelled()
-    uses: ./.github/workflows/reusable-build-deploy-docker-image.yaml
+  deploy-infra-to-acc:
+    name: Deploy Cognito Infrastructure to Acceptance
+    needs: deploy-infra-to-tst
+    if: needs.get-files-with-changes.outputs.changed-files != '[]' && !failure() && !cancelled()
+    uses: ./.github/workflows/reusable-deploy-infra.yaml
     with:
+      package-path: infra/federated-engineers-portal
       environment: acceptance
       stage: acc
-      working-directory: src
     secrets: inherit
 
-  deploy-docker-image-to-prd:
-    name: Deploy Docker Image to Production
-    needs: [get-files-with-changes, deploy-docker-image-to-acc]
-    if: needs.get-files-with-changes.outputs.changed-files != '[]' &&
-      !failure() &&
-      !cancelled()
-    uses: ./.github/workflows/reusable-build-deploy-docker-image.yaml
+  deploy-infra-to-prd:
+    name: Deploy Cognito Infrastructure to Production
+    needs: deploy-infra-to-acc
+    if: needs.get-files-with-changes.outputs.changed-files != '[]' && !failure() && !cancelled()
+    uses: ./.github/workflows/reusable-deploy-infra.yaml
     with:
+      package-path: infra/federated-engineers-portal
       environment: production
       stage: prd
-      working-directory: src
     secrets: inherit

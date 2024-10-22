@@ -27,16 +27,65 @@ jobs:
     with:
       working-directory: src
     secrets: inherit
-    
-  deploy-docker-image-to-dev:
-    name: Deploy Docker Image to Development
+
+  deploy-infra-to-dev:
+    name: Deploy Cognito Infrastructure to Development
     needs: [get-files-with-changes, run-mypy-and-pytest, check-if-application-version-is-bumped]
     if: needs.get-files-with-changes.outputs.changed-files != '[]' &&
       !failure() &&
       !cancelled()
-    uses: ./.github/workflows/reusable-build-deploy-docker-image.yaml
-    with:
-      environment: development
-      stage: dev
-      working-directory: src
-    secrets: inherit
+    runs-on: ubuntu-latest
+    environment: development
+    permissions:
+      id-token: write 
+      contents: read
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Caching
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: npm-cache-fde-backend-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: npm-cache-fde-backend-
+
+      - name: Install Node.js modules and dependencies
+        run: npm ci
+        working-directory: infra/federated-engineers-portal
+
+      - name: Configure AWS Credentials
+        uses: Postnl-Production/lpe-private-actions/lpe-aws-deploy@v5
+        with:
+          target-account-id: ${{ secrets.AWS_ACCOUNT_ID }}
+          deployment-account-id: ${{ secrets.DEPLOY_AWS_ACCOUNT }}
+          deployment-role-name: lpe-oidc-${{ github.event.repository.name }}
+
+      - name: Run CDK assertions (only in dev stage)
+        run: npm test
+        if: ${{ inputs.stage == 'dev' }}
+        working-directory: infra/federated-engineers-portal
+        env:
+          STAGE: ${{ inputs.stage }}
+
+      - name: CDK diff
+        run: npx cdk diff --context stage=dev
+        working-directory: infra/federated-engineers-portal
+
+      - name: CDK deployment
+        run: |
+          npx cdk deploy \
+          --all \
+          --context stage=dev \
+          --method change-set \
+          --require-approval never \
+          --verbose
+        working-directory: infra/federated-engineers-portal
