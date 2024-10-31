@@ -6,46 +6,63 @@ on:
     branches: [main]
 
 jobs:
-  get-files-with-changes:
-    name: Get Files with changes
-    uses: ./.github/workflows/reusable-get-files-with-changes.yaml
-    
-  deploy-docker-image-to-tst:
-    name: Deploy Docker Image to Test
-    needs: [get-files-with-changes]
-    if: needs.get-files-with-changes.outputs.changed-files != '[]' &&
-      !failure() &&
-      !cancelled()
-    uses: ./.github/workflows/reusable-build-deploy-docker-image.yaml
+  get-application-version:
+    name: Fetching version of application
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.set-application-version.outputs.tag }}
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get Application Versions from pyproject.toml
+        id: set-application-version
+        run: |
+          if [ ! -f "src/pyproject.toml" ]; then
+            echo "::error ::src/pyproject.toml file not found in the current branch"
+            exit 1
+          fi
+          application_version=$(grep "^version" src/pyproject.toml | head -n 1 | cut -d '"' -f 2)
+          if [ -n "$application_version" ]; then
+            echo "Using current version: $application_version"
+            echo "tag=$(echo $application_version)" >> $GITHUB_OUTPUT
+          else
+            echo "::error ::application-version not provided or is empty"
+            exit 1
+          fi
+
+
+  deploy-infra-to-tst:
+    name: Deploy Cognito Infrastructure to Test
+    needs: get-application-version
+    if: needs.get-application-version.outputs.version != '[]' && !failure() && !cancelled()
+    uses: ./.github/workflows/reusable-deploy-infra.yaml
     with:
       environment: test
       stage: tst
+      application-version: ${{ needs.get-application-version.outputs.version }}
     secrets: inherit
 
-
-  deploy-docker-image-to-acc:
-    name: Deploy Docker Image to Acceptance
-    needs: [get-files-with-changes, deploy-docker-image-to-tst]
-    if: needs.get-files-with-changes.outputs.changed-files != '[]' &&
-      !failure() &&
-      !cancelled()
-    uses: ./.github/workflows/reusable-build-deploy-docker-image.yaml
+  deploy-infra-to-acc:
+    name: Deploy Cognito Infrastructure to Acceptance
+    needs: [get-application-version, deploy-infra-to-tst]
+    if: needs.get-application-version.outputs.version != '[]' && !failure() && !cancelled()
+    uses: ./.github/workflows/reusable-deploy-infra.yaml
     with:
       environment: acceptance
       stage: acc
+      application-version: ${{ needs.get-application-version.outputs.version }}
     secrets: inherit
 
-
-  deploy-docker-image-to-prd:
-    name: Deploy Docker Image to Production
-    needs: [get-files-with-changes, deploy-docker-image-to-acc]
-    if: needs.get-files-with-changes.outputs.changed-files != '[]' &&
-      !failure() &&
-      !cancelled()
-    uses: ./.github/workflows/reusable-build-deploy-docker-image.yaml
+  deploy-infra-to-prd:
+    name: Deploy Cognito Infrastructure to Production
+    needs: [get-application-version, deploy-infra-to-acc]
+    if: needs.get-application-version.outputs.version != '[]' && !failure() && !cancelled()
+    uses: ./.github/workflows/reusable-deploy-infra.yaml
     with:
       environment: production
       stage: prd
+      application-version: ${{ needs.get-application-version.outputs.version }}
     secrets: inherit
-
-    

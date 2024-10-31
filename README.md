@@ -1,41 +1,14 @@
-# Federated Engineers Portal Backend
+# Repository Overview
 
-This codebase contains the code for the login portal for federated engineers that work on PostNL's 
-DataLake. It uses OneWelcome (through AWS Cognito) for authentication.
+This repository contains two main components:
 
-## Prerequisites
+1. **Infrastructure**: All infrastructure code, configurations, and setup.
+2. **Application**: The application code is located in the `src/` folder.
 
-- Python 3.11 or above
-- Poetry package manager
+## Structure
 
-## Setup
+- `src/`: Contains the entire application code including Dockerfile, dependencies, and more.
+- `infra/`: Contains all cdk related files.w£
 
-Install dependencies:
+Refer to the respective `README.md` files in `src/` for more information about the application.
 
-```shell
-poetry install
-```
-
-Configure application:
-
-```shell
-cp .env.dist .env
-```
-
-## Usage
-
-Run API in development mode:
-
-```shell
-uvicorn main:app --reload
-```
-
-Run linter:
-```shell
-flake8
-```
-
-Run type checker:
-```shell
-mypy .
-```

@@ -1,0 +1,78 @@
+# .github/workflows/reusable-deploy-infra.yaml
+name: Reusable Deployment Workflow
+run-name: Deploy Cognito Infrastructure to ${{ inputs.stage }}
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: Name of the environment (e.g., development, testing, etc.)
+        required: true
+        type: string
+      stage:
+        description: Name of the stage (e.g., dev, tst, acc, prd)
+        required: true
+        type: string
+      application-version:
+        description: Current version of the package (from branch)
+        required: true
+        type: string
+
+jobs:
+  deploy:
+    name: Deploy to ${{ inputs.stage }}
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Caching
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: npm-cache-fde-backend-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: npm-cache-fde-backend-
+
+      - name: Authenticate with Artifactory NPM Virtual
+        uses: Postnl-Production/lpe-private-actions/lpe-jfrog-npm-auth@v5
+        with:
+          npm-repo-name: postnl-data-lake-npm-dev-virtual
+          oidc: true
+
+      - name: Install Node.js modules and dependencies
+        run: npm ci
+        working-directory: infra/federated-engineers-portal
+
+      - name: Configure AWS Credentials
+        uses: Postnl-Production/lpe-private-actions/lpe-aws-deploy@v5
+        with:
+          target-account-id: ${{ secrets.AWS_ACCOUNT_ID }}
+          deployment-account-id: ${{ secrets.DEPLOY_AWS_ACCOUNT }}
+          deployment-role-name: lpe-oidc-${{ github.event.repository.name }}
+
+      - name: CDK diff
+        run: npx cdk diff --context stage=${{ inputs.stage }} --context image_tag=${{ inputs.application-version }}
+        working-directory: infra/federated-engineers-portal
+
+      - name: CDK deployment
+        run: |
+          npx cdk deploy \
+          --all \
+          --context stage=${{ inputs.stage }} \
+          --context image_tag=${{ inputs.application-version }} \
+          --method change-set \
+          --require-approval never \
+          --verbose
+        working-directory: infra/federated-engineers-portal
