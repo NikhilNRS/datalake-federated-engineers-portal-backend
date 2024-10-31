@@ -1,6 +1,10 @@
 # Changelog
 
-## 0.1.9 - 30-08-2024
+## 1.0.0 - 31-10-2024
+
+- DLAK-2343 - Implement application deployment and updates via Infra pipeline
+
+## 0.1.9 - 30-10-2024
 
 - DLAK-2343 - move infra to this (datalake-federated-engineers-portal-backend) repo.
 
@@ -32,7 +36,7 @@
 
 ## 0.1.2 - 08-07-2024
 
-- DLAK-2303 - Make smarter use of fastapi to format APP_BASE_URL, so that the 
+- DLAK-2303 - Make smarter use of fastapi to format APP_BASE_URL, so that the
   env variable is no longer needed.
 
 ## 0.1.1 - 19-06-2024
@@ -43,8 +47,9 @@
 ## 0.1.0 - 23-05-2024
 
 Initial version with the following features:
-- Login to AWS Console through OneWelcome with limited access roles assigned 
-  to Cognito Groups 
+
+- Login to AWS Console through OneWelcome with limited access roles assigned
+  to Cognito Groups
 - Server-Side Sessions
 - Redis Caching
 - Replace `python-jose` with `PyJWT` due to security vulnerabilities

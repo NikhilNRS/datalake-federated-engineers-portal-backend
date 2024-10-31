@@ -1,8 +1,8 @@
 [tool.poetry]
 name = "federated-engineers-portal-backend"
-version = "0.1.9"
+version = "1.0.0"
 description = "A login portal for federated engineers to do their work"
-authors = ["Ben van der Harg <ben.j.van.der.harg@postnl.nl>"]
+authors = ["DAP Datalake <dap-datalake@postnl.nl>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]

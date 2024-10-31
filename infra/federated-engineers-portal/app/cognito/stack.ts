@@ -283,7 +283,6 @@ export class CognitoStack extends Stack {
             imageScanOnPush: true,
         });
 
-        // Build and push dummy Docker image to the ECR repository for initial deployment
         const dockerImageAsset = new ecr_assets.DockerImageAsset(this, 'fedEngPortBackImg', {
             directory: path.join(__dirname, '../../../../src'),
         });
@@ -292,7 +291,7 @@ export class CognitoStack extends Stack {
 
         const deployAsset = new ecr_deploy.ECRDeployment(this, 'DeployDockerImage', {
             src: new ecr_deploy.DockerImageName(dockerImageAsset.imageUri),
-            dest: new ecr_deploy.DockerImageName(ecrRepository.repositoryUriForTag("dummy")),
+            dest: new ecr_deploy.DockerImageName(ecrRepository.repositoryUriForTag(props.image_tag)),
         });
         deployAsset.node.addDependency(dockerImageAsset);
 
