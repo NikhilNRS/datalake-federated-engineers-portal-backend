@@ -6,29 +6,36 @@ on:
     branches: [main]
 
 jobs:
-  get-files-with-changes:
-    name: Get Files with changes
-    uses: ./.github/workflows/reusable-get-files-with-changes.yaml
+  get-application-changes:
+    name: Get application changes
+    uses: ./.github/workflows/reusable-get-application-changes.yaml
     with:
       working-directory: src
 
+  get-infra-changes:
+    name: Get Files with changes
+    uses: ./.github/workflows/reusable-get-infra-changes.yaml
+    with:
+      working-directory: infra
+
   check-if-application-version-is-bumped:
     name: Check if the application version is bumped
-    needs: get-files-with-changes
-    if: needs.get-files-with-changes.outputs.changed-files != '[]'
+    needs: get-application-changes
+    if: needs.get-application-changes.outputs.changed-files != '[]'
     uses: ./.github/workflows/reusable-check-package-version-bumping.yaml
     with:
       working-directory: src
 
   deploy-infra:
     name: Deploy Cognito Infrastructure to Development
-    needs: [get-files-with-changes, check-if-application-version-is-bumped]
-    if: needs.get-files-with-changes.outputs.changed-files != '[]' &&
+    needs: [get-application-changes, get-infra-changes, check-if-application-version-is-bumped]
+    if: |
+      (needs.get-application-changes.outputs.changed-files != '[]' ||
+       needs.get-infra-changes.outputs.changed-files != '[]') &&
       !failure() &&
       !cancelled()
     uses: ./.github/workflows/reusable-deploy-infra.yaml
     with:
       environment: development
       stage: dev
-      application-version: ${{ needs.check-if-application-version-is-bumped.outputs.current-version }}
     secrets: inherit

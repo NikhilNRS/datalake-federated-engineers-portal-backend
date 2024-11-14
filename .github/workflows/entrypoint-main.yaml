@@ -6,63 +6,56 @@ on:
     branches: [main]
 
 jobs:
-  get-application-version:
-    name: Fetching version of application
-    runs-on: ubuntu-latest
-    outputs:
-      version: ${{ steps.set-application-version.outputs.tag }}
-    steps:
-      - name: Checkout branch
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+  get-application-changes:
+    name: Get Files with changes
+    uses: ./.github/workflows/reusable-get-application-changes.yaml
+    with:
+      working-directory: src
 
-      - name: Get Application Versions from pyproject.toml
-        id: set-application-version
-        run: |
-          if [ ! -f "src/pyproject.toml" ]; then
-            echo "::error ::src/pyproject.toml file not found in the current branch"
-            exit 1
-          fi
-          application_version=$(grep "^version" src/pyproject.toml | head -n 1 | cut -d '"' -f 2)
-          if [ -n "$application_version" ]; then
-            echo "Using current version: $application_version"
-            echo "tag=$(echo $application_version)" >> $GITHUB_OUTPUT
-          else
-            echo "::error ::application-version not provided or is empty"
-            exit 1
-          fi
-
+  get-infra-changes:
+    name: Get Files with changes
+    uses: ./.github/workflows/reusable-get-infra-changes.yaml
+    with:
+      working-directory: infra
 
   deploy-infra-to-tst:
     name: Deploy Cognito Infrastructure to Test
-    needs: get-application-version
-    if: needs.get-application-version.outputs.version != '[]' && !failure() && !cancelled()
+    needs: [get-application-changes, get-infra-changes]
+    if: |
+      (needs.get-application-changes.outputs.changed-files != '[]' ||
+       needs.get-infra-changes.outputs.changed-files != '[]') &&
+      !failure() &&
+      !cancelled()
     uses: ./.github/workflows/reusable-deploy-infra.yaml
     with:
       environment: test
       stage: tst
-      application-version: ${{ needs.get-application-version.outputs.version }}
     secrets: inherit
 
   deploy-infra-to-acc:
     name: Deploy Cognito Infrastructure to Acceptance
-    needs: [get-application-version, deploy-infra-to-tst]
-    if: needs.get-application-version.outputs.version != '[]' && !failure() && !cancelled()
+    needs: [deploy-infra-to-tst, get-application-changes, get-infra-changes]
+    if: |
+      (needs.get-application-changes.outputs.changed-files != '[]' ||
+       needs.get-infra-changes.outputs.changed-files != '[]') &&
+      !failure() &&
+      !cancelled()
     uses: ./.github/workflows/reusable-deploy-infra.yaml
     with:
       environment: acceptance
       stage: acc
-      application-version: ${{ needs.get-application-version.outputs.version }}
     secrets: inherit
 
   deploy-infra-to-prd:
     name: Deploy Cognito Infrastructure to Production
-    needs: [get-application-version, deploy-infra-to-acc]
-    if: needs.get-application-version.outputs.version != '[]' && !failure() && !cancelled()
+    needs: [deploy-infra-to-acc, get-application-changes, get-infra-changes]
+    if: |
+      (needs.get-application-changes.outputs.changed-files != '[]' ||
+       needs.get-infra-changes.outputs.changed-files != '[]') &&
+      !failure() &&
+      !cancelled()
     uses: ./.github/workflows/reusable-deploy-infra.yaml
     with:
       environment: production
       stage: prd
-      application-version: ${{ needs.get-application-version.outputs.version }}
     secrets: inherit

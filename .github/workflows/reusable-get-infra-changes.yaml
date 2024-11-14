@@ -1,0 +1,33 @@
+name: Detect infra changes
+
+on:
+  workflow_call:
+    inputs:
+      working-directory:
+        description: 'Directory where the application is located'
+        required: false
+        default: '.'
+        type: string
+    outputs:
+      changed-files:
+        description: Files with changes
+        value: ${{ jobs.changes.outputs.files }}
+
+jobs:
+  changes:
+    name: Detect infra changes
+    runs-on: ubuntu-latest
+    outputs:
+      files: ${{ steps.filters.outputs.changes }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dorny/paths-filter@0bc4621a3135347011ad047f9ecf449bf72ce2bd
+        id: filters
+        with:
+          filters: |
+            infra:
+              - '${{ inputs.working-directory }}/**/*.ts'
+              - '${{ inputs.working-directory }}/**/*.json'
+              - '${{ inputs.working-directory }}/**/*.py'
+              - '${{ inputs.working-directory }}/**/*.txt'

@@ -1,4 +1,4 @@
-name: Detect files with changes
+name: Detect Application components with changes
 
 on:
   workflow_call:
@@ -15,15 +15,13 @@ on:
 
 jobs:
   changes:
-    name: Detect files with changes
+    name: Detect Application components with changes
     runs-on: ubuntu-latest
     outputs:
       files: ${{ steps.filters.outputs.changes }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          path: ${{ inputs.working-directory }}
-          
+
       - uses: dorny/paths-filter@0bc4621a3135347011ad047f9ecf449bf72ce2bd
         id: filters
         with:

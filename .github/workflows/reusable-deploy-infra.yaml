@@ -13,16 +13,41 @@ on:
         description: Name of the stage (e.g., dev, tst, acc, prd)
         required: true
         type: string
-      application-version:
-        description: Current version of the package (from branch)
-        required: true
-        type: string
 
 jobs:
+  get-application-version:
+    name: Fetching version of application
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.set-application-version.outputs.tag }}
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get Application Versions from pyproject.toml
+        id: set-application-version
+        run: |
+          if [ ! -f "src/pyproject.toml" ]; then
+            echo "::error ::src/pyproject.toml file not found in the current branch"
+            exit 1
+          fi
+          application_version=$(grep "^version" src/pyproject.toml | head -n 1 | cut -d '"' -f 2)
+          if [ -n "$application_version" ]; then
+            echo "Using current version: $application_version"
+            echo "tag=$(echo $application_version)" >> $GITHUB_OUTPUT
+          else
+            echo "::error ::application-version not provided or is empty"
+            exit 1
+          fi
+
   deploy:
     name: Deploy to ${{ inputs.stage }}
     runs-on: ubuntu-latest
     environment: ${{ inputs.environment }}
+    needs: get-application-version
+    if: needs.get-application-version.outputs.version != '[]' && !failure() && !cancelled()
     permissions:
       id-token: write
       contents: read
@@ -63,7 +88,7 @@ jobs:
           deployment-role-name: lpe-oidc-${{ github.event.repository.name }}
 
       - name: CDK diff
-        run: npx cdk diff --context stage=${{ inputs.stage }} --context image_tag=${{ inputs.application-version }}
+        run: npx cdk diff --context stage=${{ inputs.stage }} --context image_tag=${{ needs.get-application-version.outputs.version }}
         working-directory: infra/federated-engineers-portal
 
       - name: CDK deployment
@@ -71,7 +96,7 @@ jobs:
           npx cdk deploy \
           --all \
           --context stage=${{ inputs.stage }} \
-          --context image_tag=${{ inputs.application-version }} \
+          --context image_tag=${{ needs.get-application-version.outputs.version }} \
           --method change-set \
           --require-approval never \
           --verbose
