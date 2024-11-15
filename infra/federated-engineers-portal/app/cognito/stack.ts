@@ -245,7 +245,7 @@ export class CognitoStack extends Stack {
                             "logs:StartQuery",
                             "logs:Unmask",
                         ],
-                        "Resource": `arn:aws:logs:eu-west-1:${Aws.ACCOUNT_ID}:log-group:/aws-glue/jobs/error`,
+                        "Resource": `arn:aws:logs:eu-west-1:${Aws.ACCOUNT_ID}:log-group:/aws-glue/jobs/*`,
                         "Effect": "Allow",
                         "Sid": "CloudwatchGlueErrorLogsReadAccess",
                     },
@@ -286,7 +286,7 @@ export class CognitoStack extends Stack {
         const dockerImageAsset = new ecr_assets.DockerImageAsset(this, 'fedEngPortBackImg', {
             directory: path.join(__dirname, '../../../../src'),
         });
-        
+
         dockerImageAsset.node.addDependency(ecrRepository);
 
         const deployAsset = new ecr_deploy.ECRDeployment(this, 'DeployDockerImage', {
